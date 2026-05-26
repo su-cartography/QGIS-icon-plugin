@@ -42,6 +42,8 @@ def _bootstrap_map_icons_package():
     config_mod = importlib.util.module_from_spec(spec_c)
     sys.modules["map_icons.config"] = config_mod
     spec_c.loader.exec_module(config_mod)
+    # Make submodule available as attribute so unittest.mock.patch can resolve "map_icons.config"
+    pkg.config = config_mod
 
     spec_dm = importlib.util.spec_from_file_location(
         "map_icons.data_manager", ROOT / "data_manager.py"
@@ -49,6 +51,8 @@ def _bootstrap_map_icons_package():
     dm_mod = importlib.util.module_from_spec(spec_dm)
     sys.modules["map_icons.data_manager"] = dm_mod
     spec_dm.loader.exec_module(dm_mod)
+    # Make submodule available as attribute so unittest.mock.patch can resolve "map_icons.data_manager"
+    pkg.data_manager = dm_mod
 
 
 _bootstrap_map_icons_package()
