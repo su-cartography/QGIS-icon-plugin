@@ -23,6 +23,7 @@
 """
 
 import os
+import re
 import csv
 import logging
 from pathlib import Path
@@ -57,6 +58,23 @@ from .config import (
     CONTAINER_STYLE
 )
 from .data_manager import DataManager
+
+# Exact column headers in sample-icon-set-metadata.csv (Zenodo v4)
+METADATA_CSV_HEADERS = (
+    "unique-ID",
+    "designer",
+    "metadata",
+    "uploader",
+    "primary-tags",
+    "secondary-tags",
+    "when-created",
+    "when-uploaded",
+    "where-created",
+    "icon-geography",
+    "icon-description",
+    "icon-context",
+    "creation-context",
+)
 
 # Load the UI definition file
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -134,9 +152,6 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.load_metadata()
             print(f"Metadata list length: {len(self.metadata_list) if hasattr(self, 'metadata_list') else 0}")
             
-            # Check if SVG files are available
-            self._check_svg_availability()
-            
             print("=== LOADING ICONS ===")
             self.load_icons()
             print(f"Icon buttons created: {len(self.icon_buttons)}")
@@ -199,154 +214,155 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         """Handle Cancel button click - hide metadata panel and clear selection."""
         self.clear_selection()
 
+    def _set_label(self, widget_name, value):
+        if hasattr(self, widget_name):
+            getattr(self, widget_name).setText(value if value else "-")
+
+    @staticmethod
+    def _metadata_header_indices(headers):
+        """
+        Map each expected CSV header to its column index.
+        Returns (indices dict, list of missing headers).
+        """
+        lookup = {h.strip(): i for i, h in enumerate(headers)}
+        indices = {}
+        missing = []
+        for name in METADATA_CSV_HEADERS:
+            if name not in lookup:
+                missing.append(name)
+            else:
+                indices[name] = lookup[name]
+        return indices, missing
+
+    def _ingest_metadata_rows(self, headers, rows_of_strings):
+        """Populate metadata_list / metadata_by_filename from CSV rows."""
+        col, missing = self._metadata_header_indices(headers)
+        if missing:
+            logging.error("Metadata file missing columns: %s", missing)
+            self.metadata_list = []
+            self.metadata_by_filename = {}
+            self.icon_metadata = {}
+            self.show_error_message(
+                "Metadata file is missing required columns:\n" + ", ".join(missing)
+            )
+            return
+
+        metadata_list = []
+        metadata_by_filename = {}
+
+        for row in rows_of_strings:
+            cells = list(row)
+            while len(cells) < len(headers):
+                cells.append("")
+
+            def cell(header):
+                i = col[header]
+                return str(cells[i]).strip() if i < len(cells) and cells[i] else ""
+
+            uid = cell("unique-ID")
+            filename = None
+            if uid:
+                filename = Path(uid).name
+                if not filename.lower().endswith(".png"):
+                    filename = f"{filename}.png"
+
+            metadata = {
+                "filename": filename,
+                "designer": cell("designer"),
+                "metadata": cell("metadata"),
+                "uploader": cell("uploader"),
+                "primary_tag": cell("primary-tags"),
+                "secondary_tags": cell("secondary-tags"),
+                "when_created": cell("when-created"),
+                "when_uploaded": cell("when-uploaded"),
+                "where_created": cell("where-created"),
+                "icon_geography": cell("icon-geography"),
+                "icon_description": cell("icon-description"),
+                "icon_context": cell("icon-context"),
+                "creation_context": cell("creation-context"),
+            }
+            metadata_list.append(metadata)
+            if filename:
+                metadata_by_filename[filename] = metadata
+
+        self.icon_metadata = {}
+        self.metadata_list = metadata_list
+        self.metadata_by_filename = metadata_by_filename
+        logging.info(
+            "Loaded %s metadata rows; %s keyed by unique-ID",
+            len(metadata_list),
+            len(metadata_by_filename),
+        )
+
     def load_metadata(self):
-        """
-        Load comprehensive metadata from the Excel file downloaded from Zenodo.
-        
-        The Excel file contains:
-        - UUID: The unique identifier for each icon
-        - Filename: The PNG filename of the icon
-        - Primary Tag: The descriptive category for the icon (shown as label)
-        - Designer: Who created the icon
-        - Uploader: Who uploaded the icon
-        - When Created: Creation date
-        - Where Created: Location where icon was created
-        - Notes: Additional information
-        - Source: Source of the icon (boston_workshop)
-        """
+        """Load metadata from sample-icon-set-metadata.csv (see METADATA_CSV_HEADERS)."""
         if not self.data_manager:
             logging.error("Data manager not initialized")
             return
-        
-        logging.info("=== Loading metadata from Excel file ===")
-        
-        # Get metadata file path from data manager
+
+        logging.info("=== Loading metadata file ===")
+
         metadata_file = self.data_manager.get_metadata_file()
         logging.info(f"Metadata file path: {metadata_file}")
         logging.info(f"Metadata file exists: {metadata_file.exists()}")
-        
+
         if not metadata_file.exists():
             logging.error(f"Metadata file not found: {metadata_file}")
             self.show_error_message("Metadata file not found. Please check data download.")
             return
-        
+
+        suffix = metadata_file.suffix.lower()
+
         try:
-            # Load the Excel file
-            if not OPENPYXL_AVAILABLE:
-                logging.error("openpyxl library not available for Excel reading")
-                self.show_error_message(
-                    "Excel reading library (openpyxl) not available. "
-                    "Please install it: pip install openpyxl"
-                )
-                return
-            
-            workbook = load_workbook(metadata_file, read_only=True)
-            worksheet = workbook.active
-            
-            # Extract headers from first row (handle None values)
-            headers = [str(cell.value).strip() if cell.value else "" for cell in worksheet[1]]
-            logging.info(f"Excel file headers: {headers}")
-            
-            # Find column indices - handle both hyphen and underscore versions, case-insensitive
-            def find_col(possible_names):
-                headers_lower = [h.lower().replace('-', '_') for h in headers]
-                for name in possible_names:
-                    name_normalized = name.lower().replace('-', '_')
-                    if name_normalized in headers_lower:
-                        idx = headers_lower.index(name_normalized)
-                        logging.info(f"Found column '{name}' at index {idx} (actual header: '{headers[idx]}')")
-                        return idx
-                # Try direct match with original headers
-                for name in possible_names:
-                    if name.lower() in [h.lower() for h in headers]:
-                        idx = [h.lower() for h in headers].index(name.lower())
-                        logging.info(f"Found column '{name}' at index {idx} (actual header: '{headers[idx]}')")
-                        return idx
-                logging.warning(f"Column not found: {possible_names}. Available: {headers}")
-                return None
-            
-            # Try to find filename column for proper matching
-            filename_idx = find_col(['filename', 'file_name', 'icon_filename', 'icon_file', 'image_filename', 'image_file'])
-            
-            designer_idx = find_col(['designer', 'designe r']) or 0
-            uploader_idx = find_col(['uploader', 'upload er']) or 1
-            primary_tag_idx = find_col(['primary-tags', 'primary-tag', 'primary_tag', 'tag', 'category']) or 2
-            secondary_tags_idx = find_col(['secondary-tags', 'secondary_tags']) or None
-            when_created_idx = find_col(['when-created', 'when_created', 'created', 'date_created']) or 4
-            when_uploaded_idx = find_col(['when-uploaded', 'when_uploaded']) or None
-            where_created_idx = find_col(['where-created', 'where_created', 'wher e- creat ed', 'location']) or 6
-            icon_geography_idx = find_col(['icon-geography', 'icon_geography', 'icon- geograp hy']) or None
-            icon_description_idx = find_col(['icon-description', 'icon_description', 'icon- descripti on']) or None
-            icon_context_idx = find_col(['icon-context', 'icon_context']) or None
-            creation_context_idx = find_col(['creation-context', 'creation_context']) or None
-            notes_idx = find_col(['notes', 'note']) or None
-            
-            # Load metadata from rows - store by filename if available, otherwise by index
-            self.icon_metadata = {}
-            metadata_list = []  # Store in order to match with sorted icon files
-            metadata_by_filename = {}  # Store metadata indexed by filename if filename column exists
-            
-            for row_idx, row in enumerate(worksheet.iter_rows(min_row=2), start=2):
-                if len(row) < max(designer_idx, primary_tag_idx, notes_idx, 0):
-                    continue
-                
-                # Safely extract metadata fields
-                def get_value(idx):
-                    if idx is not None and idx < len(row) and row[idx].value:
-                        return str(row[idx].value).strip()
-                    return ""
-                
-                # Get filename if available
-                filename = get_value(filename_idx) if filename_idx is not None else None
-                if filename:
-                    # Clean filename (remove path, ensure .png extension)
-                    filename = Path(filename).name
-                    if not filename.lower().endswith('.png'):
-                        filename = filename + '.png'
-                
-                metadata = {
-                    'primary_tag': get_value(primary_tag_idx),  # Column is "primary-tags" but stored as primary_tag
-                    'secondary_tags': get_value(secondary_tags_idx),
-                    'designer': get_value(designer_idx),
-                    'uploader': get_value(uploader_idx),
-                    'when_created': get_value(when_created_idx),
-                    'when_uploaded': get_value(when_uploaded_idx),
-                    'where_created': get_value(where_created_idx),
-                    'icon_geography': get_value(icon_geography_idx),
-                    'icon_description': get_value(icon_description_idx),  # New field from Excel
-                    'icon_context': get_value(icon_context_idx),
-                    'creation_context': get_value(creation_context_idx),
-                    'notes': get_value(notes_idx),
-                    'source': 'boston_workshop',  # Default source
-                    'filename': filename  # Store filename for matching
-                }
-                
-                metadata_list.append(metadata)
-                
-                # If filename is available, index by filename
-                if filename:
-                    metadata_by_filename[filename] = metadata
-            
-            logging.info(f"Loaded {len(metadata_list)} metadata entries")
-            if filename_idx is not None:
-                logging.info(f"Found filename column - will match icons by filename")
-                logging.info(f"Metadata indexed by filename: {len(metadata_by_filename)} entries")
+            if suffix == '.csv':
+                with open(metadata_file, newline='', encoding='utf-8-sig') as f:
+                    reader = csv.reader(f)
+                    all_rows = list(reader)
+                if not all_rows:
+                    raise ValueError("Empty CSV")
+                headers = [str(h).strip() if h else "" for h in all_rows[0]]
+                rows_of_strings = []
+                for raw in all_rows[1:]:
+                    vals = [str(c).strip() if c else "" for c in raw]
+                    if not any(vals):
+                        continue
+                    rows_of_strings.append(vals)
+                self._ingest_metadata_rows(headers, rows_of_strings)
             else:
-                logging.info("No filename column found - will match icons by index order")
-            
-            # Store metadata - we'll match by filename if available, otherwise by index
-            self.metadata_list = metadata_list
-            self.metadata_by_filename = metadata_by_filename if filename_idx is not None else {}
-            
-            workbook.close()
-            
-            logging.info(f"Successfully loaded metadata for {len(metadata_list)} rows")
-            
+                if not OPENPYXL_AVAILABLE:
+                    logging.error("openpyxl library not available for Excel reading")
+                    self.show_error_message(
+                        "Excel reading library (openpyxl) not available. "
+                        "Please install it: pip install openpyxl"
+                    )
+                    return
+
+                workbook = load_workbook(metadata_file, read_only=True)
+                worksheet = workbook.active
+                headers = [
+                    str(cell.value).strip() if cell.value else "" for cell in worksheet[1]
+                ]
+                rows_of_strings = []
+                for row in worksheet.iter_rows(min_row=2):
+                    vals = []
+                    for i in range(len(headers)):
+                        if i < len(row) and row[i].value is not None:
+                            vals.append(str(row[i].value).strip())
+                        else:
+                            vals.append("")
+                    if not any(vals):
+                        continue
+                    rows_of_strings.append(vals)
+                workbook.close()
+                self._ingest_metadata_rows(headers, rows_of_strings)
+
         except Exception as e:
-            logging.error(f"Error loading metadata from Excel file: {e}")
+            logging.error(f"Error loading metadata file: {e}")
             import traceback
             traceback.print_exc()
             self.icon_metadata = {}
+            self.metadata_list = []
+            self.metadata_by_filename = {}
             self.show_error_message(f"Failed to load metadata: {e}")
 
     def load_icons(self):
@@ -379,12 +395,9 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         # Check if icons are in a subdirectory (common after zip extraction)
         # IMPORTANT: Check various possible extraction locations
         possible_icon_dirs = [
-            self.data_manager.cache_dir / "sample-icon-set",  # Zip extracts to folder with zip name
-            self.data_manager.cache_dir / "icons",  # Alternative extraction location
-            icons_dir / "sample-icon-set",
-            icons_dir / "icons",
+            self.data_manager.cache_dir / "sample-icon-set-PNG",
+            icons_dir / "sample-icon-set-PNG",
             icons_dir,
-            icons_dir.parent / "icons"
         ]
         
         actual_icons_dir = None
@@ -477,116 +490,66 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             print(f"WARNING: No PNG files found in {actual_icons_dir}")
             self.show_error_message(f"No PNG icon files found in:\n{actual_icons_dir}\n\nPlease check if icons were downloaded correctly.")
         
-        # Extract numeric prefix from filenames
-        # Handles: "1.png", "1" (no extension), "image1.png", "icon1.png", etc.
-        def extract_number(filename):
-            """Extract number from filename like '1.png', '1', 'image1.png', 'icon1.png', etc."""
-            try:
-                # Remove .png extension if present
-                name_without_ext = filename.replace('.png', '').replace('.PNG', '')
-                
-                # Skip macOS resource forks
-                if name_without_ext.startswith('._'):
-                    return None
-                
-                # Try direct number first (e.g., "1.png" or "1" -> 1)
-                try:
-                    return int(name_without_ext)
-                except ValueError:
-                    pass
-                
-                # Try to extract number from patterns like "image1", "icon1", "1", etc.
-                import re
-                # Find all numbers in the filename
-                numbers = re.findall(r'\d+', name_without_ext)
-                if numbers:
-                    # Use the last number found (handles "image1", "icon1", "1", etc.)
-                    return int(numbers[-1])
-                
-                return None
-            except (ValueError, AttributeError):
-                return None
-        
-        # Sort icons by numeric value (1.png, 2.png, ..., 10.png)
-        icon_files_with_numbers = []
-        icon_files_without_numbers = []
-        for icon_file in all_icon_files:
-            num = extract_number(icon_file)
-            if num is not None:
-                icon_files_with_numbers.append((num, icon_file))
-            else:
-                icon_files_without_numbers.append(icon_file)
-        
-        # Sort by number
-        icon_files_with_numbers.sort(key=lambda x: x[0])
-        sorted_icon_files = [icon_file for _, icon_file in icon_files_with_numbers]
-        
-        print(f"Found {len(sorted_icon_files)} numbered icon files (out of {len(all_icon_files)} total)")
-        logging.info(f"Found {len(sorted_icon_files)} numbered icon files (out of {len(all_icon_files)} total)")
-        if icon_files_without_numbers:
-            print(f"WARNING: Icons without numbers (will be skipped): {icon_files_without_numbers[:5]}")
-            logging.warning(f"Icons without numbers (will be skipped): {icon_files_without_numbers[:5]}")
-        if sorted_icon_files:
-            print(f"Numbered icon files: {sorted_icon_files[:10]}")
-            logging.info(f"Numbered icon files: {sorted_icon_files[:10]}")
-        else:
-            print("ERROR: No numbered icon files found!")
-            print(f"All icon files found: {all_icon_files[:20]}")
-            error_msg = (
-                f"No numbered icon files found (expected: 1.png, 2.png, etc.)\n\n"
-                f"Found {len(all_icon_files)} PNG files, but none match the numbering pattern.\n\n"
-                f"Sample filenames found:\n{', '.join(all_icon_files[:10])}\n\n"
-                f"Please check:\n"
-                f"1. Icon files are named with numbers (1.png, 2.png, image1.png, etc.)\n"
-                f"2. Icons directory: {actual_icons_dir}"
-            )
-            self.show_error_message(error_msg)
-            return
-        
-        # Match icons to metadata by row number
-        # 1.png -> Excel row 2 (first data row)
-        # 2.png -> Excel row 3 (second data row)
-        # etc.
         self.icon_metadata = {}
-        icon_files = []  # Only icons with metadata
-        
-        if hasattr(self, 'metadata_list') and self.metadata_list:
-            logging.info(f"Matching {len(sorted_icon_files)} icons to {len(self.metadata_list)} metadata rows")
-            
-            for icon_file in sorted_icon_files:
-                num = extract_number(icon_file)
-                if num is not None:
-                    # Icon number corresponds to Excel row index
-                    # 1.png -> metadata_list[0] (Excel row 2)
-                    # 2.png -> metadata_list[1] (Excel row 3)
-                    # etc.
-                    metadata_idx = num - 1  # Convert 1-based to 0-based index
-                    
-                    # CRITICAL: Only include icons 1-10 (matching the 10 metadata rows)
-                    # Skip icons beyond the metadata count
-                    if 0 <= metadata_idx < len(self.metadata_list) and num <= len(self.metadata_list):
-                        self.icon_metadata[icon_file] = self.metadata_list[metadata_idx]
-                        icon_files.append(icon_file)
-                        if metadata_idx < 3:  # Log first 3 matches
-                            print(f"Matched {icon_file} (icon #{num}) -> Excel row {metadata_idx + 2}")
-                            logging.info(f"Matched {icon_file} (icon #{num}) -> Excel row {metadata_idx + 2} -> primary_tag='{self.metadata_list[metadata_idx].get('primary_tag', 'N/A')}'")
-                    else:
-                        if num > len(self.metadata_list):
-                            logging.debug(f"Skipping {icon_file} (icon #{num}) - exceeds metadata count ({len(self.metadata_list)})")
-                        else:
-                            logging.debug(f"Skipping {icon_file} (icon #{num}) - no matching metadata row (index {metadata_idx} out of range)")
-            
-            print(f"Matched {len(self.icon_metadata)} icons to metadata (should be {len(self.metadata_list)})")
-            logging.info(f"Matched {len(self.icon_metadata)} icons to metadata (out of {len(sorted_icon_files)} numbered icons)")
-            
-            if len(icon_files) != len(self.metadata_list):
-                print(f"WARNING: Expected {len(self.metadata_list)} icons but found {len(icon_files)}")
-                print(f"Only showing icons 1-{len(self.metadata_list)}")
+        icon_files = []
+
+        # --- Zenodo v4+ / unique IDs: match by filename column in spreadsheet (same stem as .png on disk)
+        if getattr(self, 'metadata_by_filename', None) and len(self.metadata_by_filename) > 0:
+            disk_names = set(all_icon_files)
+            lower_map = {n.lower(): n for n in disk_names}
+            logging.info(
+                f"Filename-based matching: {len(self.metadata_by_filename)} metadata filenames vs "
+                f"{len(disk_names)} PNGs on disk"
+            )
+            for meta in self.metadata_list:
+                fn = meta.get('filename')
+                if not fn:
+                    continue
+                fn = Path(fn).name
+                if fn not in disk_names:
+                    fn = lower_map.get(fn.lower(), fn)
+                if fn in disk_names:
+                    icon_files.append(fn)
+                    self.icon_metadata[fn] = meta
+            if not icon_files:
+                sample = ', '.join(list(disk_names)[:8])
+                meta_sample = ', '.join(list(self.metadata_by_filename.keys())[:8])
+                meta_keys = [k.strip() for k in meta_sample.split(",") if k.strip()]
+                legacy_disk = bool(disk_names) and all(
+                    re.fullmatch(r"\d+\.png", n, re.I) for n in disk_names
+                )
+                id_meta = bool(meta_keys) and re.fullmatch(
+                    r"[a-f0-9]{4,}\.png", meta_keys[0], re.I
+                )
+                hint = ""
+                if legacy_disk and id_meta:
+                    hint = (
+                        "\n\nYour cache still has OLD numbered icons (1.png, 2.png, …) from a "
+                        "previous Zenodo version, while metadata is the v4 CSV (unique-ID filenames). "
+                        "Delete the plugin’s cache folder (or at least cache/sample-icon-set), then "
+                        "open the plugin again so it can download sample-icon-set-PNG.zip. "
+                        "Alternatively, copy all PNGs into cache/sample-icon-set-PNG/ using the "
+                        "same names as the unique-ID column plus “.png”."
+                    )
+                self.show_error_message(
+                    "No icons matched metadata filenames.\n\n"
+                    "Check that the spreadsheet filename column exactly matches PNG names on disk "
+                    "(e.g. 047678c6.png).\n\n"
+                    f"Sample PNGs on disk: {sample}\n"
+                    f"Sample metadata filenames: {meta_sample}"
+                    f"{hint}"
+                )
+                return
+            print(f"Matched {len(icon_files)} icons by filename to metadata rows")
+            logging.info(f"Matched {len(icon_files)} icons by filename")
         else:
-            print("WARNING: No metadata list available - showing all numbered icons")
-            logging.warning("No metadata list available - icons will show without metadata")
-            icon_files = sorted_icon_files  # Show all numbered icons if no metadata
-        
+            self.show_error_message(
+                "Metadata could not be loaded.\n\n"
+                "The CSV must include these columns:\n"
+                + ", ".join(METADATA_CSV_HEADERS)
+            )
+            return
+
         print(f"Total icons to display: {len(icon_files)}")
 
         # Separate icons into two categories: with labels and without labels
@@ -723,7 +686,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
     def on_search_text_changed(self, text):
         """
         Filter visible icons based on search text.
-        Matches against primary and secondary tags (case-insensitive).
+        Matches against primary and secondary tags.
         """
         # If icon entries haven't been created yet, nothing to filter
         if not hasattr(self, 'icon_entries') or not self.icon_entries:
@@ -756,163 +719,58 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             if entry_container:
                 entry_container.setVisible(visible)
 
-    def _check_svg_availability(self):
-        """Check if SVG files are available in the cache and log the results."""
-        if not self.data_manager:
-            return
-        
-        logging.info("=== CHECKING SVG AVAILABILITY ===")
-        
-        # Check in sample-icon-set directory
-        sample_icon_set_dir = self.data_manager.cache_dir / "sample-icon-set"
-        if sample_icon_set_dir.exists():
-            svg_files = list(sample_icon_set_dir.glob("*.svg"))
-            logging.info(f"Found {len(svg_files)} SVG files in {sample_icon_set_dir}")
-            if svg_files:
-                logging.info(f"Sample SVG files: {[f.name for f in svg_files[:5]]}")
-        else:
-            logging.warning(f"Directory does not exist: {sample_icon_set_dir}")
-        
-        # Check in sample-icon-set-svgs directory (alternative location)
-        sample_icon_set_svgs_dir = self.data_manager.cache_dir / "sample-icon-set-svgs"
-        if sample_icon_set_svgs_dir.exists():
-            svg_files = list(sample_icon_set_svgs_dir.glob("*.svg"))
-            logging.info(f"Found {len(svg_files)} SVG files in {sample_icon_set_svgs_dir}")
-            if svg_files:
-                logging.info(f"Sample SVG files: {[f.name for f in svg_files[:5]]}")
-        else:
-            logging.debug(f"Directory does not exist: {sample_icon_set_svgs_dir}")
-        
-        # Check recursively in cache
-        all_svgs = list(self.data_manager.cache_dir.rglob("*.svg"))
-        logging.info(f"Total SVG files found in cache (recursive): {len(all_svgs)}")
-        if all_svgs:
-            logging.info(f"Sample SVG paths: {[str(f) for f in all_svgs[:5]]}")
-        else:
-            logging.warning("No SVG files found in cache directory!")
-            try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(
-                    "WARNING: No SVG files found in cache. SVG toggle will be disabled.",
-                    "Map Icons",
-                    level=QgsMessageLog.WARNING
-                )
-            except:
-                pass
-    
+    def _svg_search_directories(self):
+        """Directories to search for <unique-id>.svg (Zenodo sample-icon-set-SVG / PNG folders)."""
+        dirs = []
+        if getattr(self, 'actual_icons_dir', None):
+            dirs.append(Path(self.actual_icons_dir))
+        if self.data_manager:
+            cache = self.data_manager.cache_dir
+            for sub in ("sample-icon-set-PNG", "sample-icon-set-SVG"):
+                d = cache / sub
+                if d.is_dir():
+                    dirs.append(d)
+        seen = set()
+        unique = []
+        for d in dirs:
+            key = d.resolve()
+            if key not in seen:
+                seen.add(key)
+                unique.append(d)
+        return unique
+
     def _find_svg_file(self, png_filename):
-        """
-        Find the corresponding SVG file for a PNG icon in the cache directory.
-        Uses multiple methods to locate SVG files, similar to the local version.
-        
-        Args:
-            png_filename: PNG filename (e.g., "1.png")
-            
-        Returns:
-            Path to SVG file if found, None otherwise
-        """
+        """Find SVG with the same stem as the PNG (e.g. 047678c6.png → 047678c6.svg)."""
         if not png_filename:
             return None
-        
-        # Extract number from filename (e.g., "1.png" -> "1.svg")
-        def extract_number(filename):
-            try:
-                name_without_ext = filename.replace('.png', '').replace('.PNG', '')
-                return int(name_without_ext)
-            except (ValueError, AttributeError):
-                return None
-        
-        num = extract_number(png_filename)
-        if num is None:
-            logging.warning(f"Could not extract number from filename: {png_filename}")
+        stem = Path(png_filename).stem
+        if not stem or stem.startswith('._'):
             return None
-        
-        svg_filename = f"{num}.svg"
-        
-        # Use QGIS message log for better visibility
-        try:
-            from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(f"Looking for SVG: {svg_filename} (from {png_filename})", "Map Icons", level=QgsMessageLog.INFO)
-        except:
-            pass
-        
-        logging.info(f"=== Looking for SVG: {svg_filename} ===")
-        
-        # Method 1: Check in actual_icons_dir (where PNGs were found)
-        if hasattr(self, 'actual_icons_dir') and self.actual_icons_dir:
-            svg_path = self.actual_icons_dir / svg_filename
-            logging.info(f"Method 1: Checking {svg_path}")
-            if svg_path.exists():
-                logging.info(f"✓ Found SVG in actual_icons_dir: {svg_path}")
-                try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"SVG found: {svg_path.name}", "Map Icons", level=QgsMessageLog.SUCCESS)
-                except:
-                    pass
-                return svg_path
-            else:
-                logging.debug(f"✗ SVG not found at: {svg_path}")
-        
-        # Method 2: Check in cache/sample-icon-set directory (where zip extracts)
+        svg_name = f"{stem}.svg"
+        for folder in self._svg_search_directories():
+            candidate = folder / svg_name
+            if candidate.is_file() and not candidate.name.startswith('._'):
+                return candidate
         if self.data_manager:
-            cache_svg_path = self.data_manager.cache_dir / "sample-icon-set" / svg_filename
-            logging.info(f"Method 2: Checking {cache_svg_path}")
-            if cache_svg_path.exists():
-                logging.info(f"✓ Found SVG in cache/sample-icon-set: {cache_svg_path}")
-                try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"SVG found: {cache_svg_path.name}", "Map Icons", level=QgsMessageLog.SUCCESS)
-                except:
-                    pass
-                return cache_svg_path
-            else:
-                logging.debug(f"✗ SVG not found at: {cache_svg_path}")
-        
-        # Method 2b: Check in cache/sample-icon-set-svgs or sample-icon-set-svg (zip extract locations)
-        if self.data_manager:
-            for subdir in ("sample-icon-set-svgs", "sample-icon-set-svg"):
-                cache_svg_path = self.data_manager.cache_dir / subdir / svg_filename
-                logging.info(f"Method 2b: Checking {cache_svg_path}")
-                if cache_svg_path.exists():
-                    logging.info(f"✓ Found SVG in cache/{subdir}: {cache_svg_path}")
-                    try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"SVG found: {cache_svg_path.name}", "Map Icons", level=QgsMessageLog.SUCCESS)
-                    except:
-                        pass
-                    return cache_svg_path
-
-        # Method 3: Check recursively in cache directory
-        if self.data_manager:
-            all_svgs = list(self.data_manager.cache_dir.rglob(svg_filename))
-            if all_svgs:
-                svg_path = all_svgs[0]
-                logging.info(f"✓ Found SVG recursively: {svg_path}")
-                try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"SVG found: {svg_path.name}", "Map Icons", level=QgsMessageLog.SUCCESS)
-                except:
-                    pass
-                return svg_path
-        
-        # Method 4: Check in plugin directory (if icons were extracted there)
-        try:
-            plugin_dir = Path(os.path.dirname(__file__))
-            plugin_svg_path = plugin_dir / "cache" / "sample-icon-set" / svg_filename
-            logging.info(f"Method 4: Checking {plugin_svg_path}")
-            if plugin_svg_path.exists():
-                logging.info(f"✓ Found SVG in plugin cache: {plugin_svg_path}")
-                return plugin_svg_path
-        except Exception as e:
-            logging.debug(f"Method 4 failed: {e}")
-        
-        logging.warning(f"✗ SVG not found for {png_filename} (searched for {svg_filename})")
-        try:
-            from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(f"No SVG found for {png_filename}", "Map Icons", level=QgsMessageLog.WARNING)
-        except:
-            pass
+            for candidate in self.data_manager.cache_dir.rglob(svg_name):
+                if '__MACOSX' in candidate.parts or candidate.name.startswith('._'):
+                    continue
+                return candidate
         return None
+
+    def _update_svg_format_toggle(self):
+        """Enable or disable the SVG radio based on the selected icon."""
+        if not hasattr(self, 'svgFormatRadio'):
+            return
+        has_svg = bool(
+            self.selected_icon_svg
+            and Path(self.selected_icon_svg).is_file()
+        )
+        self.svgFormatRadio.setEnabled(has_svg)
+        if not has_svg and self.use_svg_format:
+            self.use_svg_format = False
+            if hasattr(self, 'pngFormatRadio'):
+                self.pngFormatRadio.setChecked(True)
     
     def select_icon(self, icon_path, button, filename):
         """
@@ -928,59 +786,13 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.selected_icon_png = icon_path
         self.selected_icon_filename = filename
         
-        # Use QGIS message log to show messages (more visible than logging)
-        try:
-            from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(f"Selecting icon: {filename}", "Map Icons", level=QgsMessageLog.INFO)
-        except:
-            pass
-        
-        logging.info(f"=== SELECTING ICON: {filename} ===")
-        logging.info(f"PNG path: {icon_path}")
-        
-        # Try to find corresponding SVG file
+        logging.info("Selected icon %s at %s", filename, icon_path)
         self.selected_icon_svg = self._find_svg_file(filename)
-        
-        if self.selected_icon_svg:
-            logging.info(f"✓ SVG file found: {self.selected_icon_svg}")
-            logging.info(f"  SVG exists: {self.selected_icon_svg.exists()}")
-        else:
-            logging.warning(f"✗ No SVG file found for {filename}")
-        
-        # Make format group visible for all icons
         if hasattr(self, 'formatGroup'):
             self.formatGroup.setVisible(True)
-            self.formatGroup.show()  # Force show
-        
-        # Enable PNG option (always available)
         if hasattr(self, 'pngFormatRadio'):
             self.pngFormatRadio.setEnabled(True)
-        
-        # Enable SVG option if SVG file exists
-        if hasattr(self, 'svgFormatRadio'):
-            if self.selected_icon_svg and self.selected_icon_svg.exists():
-                self.svgFormatRadio.setEnabled(True)
-                self.svgFormatRadio.setVisible(True)  # Make sure it's visible
-                logging.info(f"✓ SVG button ENABLED for {filename}: {self.selected_icon_svg}")
-                try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"SVG available: {self.selected_icon_svg.name}", "Map Icons", level=QgsMessageLog.SUCCESS)
-                except:
-                    pass
-            else:
-                self.svgFormatRadio.setEnabled(False)
-                self.svgFormatRadio.setVisible(True)  # Still show it, just disabled
-                if self.selected_icon_svg:
-                    logging.warning(f"✗ SVG button DISABLED - SVG path exists but file not found: {self.selected_icon_svg}")
-                else:
-                    logging.warning(f"✗ SVG button DISABLED - No SVG path found for {filename}")
-                # If SVG was selected but not available, switch back to PNG
-                if self.use_svg_format:
-                    self.use_svg_format = False
-                    if hasattr(self, 'pngFormatRadio'):
-                        self.pngFormatRadio.setChecked(True)
-        
-        # Update selected icon based on current format
+        self._update_svg_format_toggle()
         self.update_selected_icon_format()
         
         # Uncheck all other buttons (single selection)
@@ -995,36 +807,12 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.metadataPanel.setVisible(True)
         self.update_metadata_display(filename, icon_path)
         
-        # Force format group to be visible and update format buttons
-        if hasattr(self, 'formatGroup'):
-            self.formatGroup.setVisible(True)
-            self.formatGroup.show()  # Force show
-        if hasattr(self, 'svgFormatRadio'):
-            self.svgFormatRadio.show()  # Force show SVG button
-            self.svgFormatRadio.setVisible(True)
-    
     def on_format_changed(self):
         """Handle format radio button change (PNG/SVG)."""
-        logging.info("=== FORMAT CHANGED EVENT TRIGGERED ===")
-        
-        # Determine which format is selected
         if hasattr(self, 'svgFormatRadio') and self.svgFormatRadio.isChecked():
             self.use_svg_format = True
-            logging.info(f"SVG format selected for icon: {self.selected_icon_filename}")
-            if hasattr(self, 'pngFormatRadio'):
-                self.pngFormatRadio.setChecked(False)
-        elif hasattr(self, 'pngFormatRadio') and self.pngFormatRadio.isChecked():
-            self.use_svg_format = False
-            logging.info(f"PNG format selected for icon: {self.selected_icon_filename}")
-            if hasattr(self, 'svgFormatRadio'):
-                self.svgFormatRadio.setChecked(False)
         else:
-            # Neither checked - default to PNG
             self.use_svg_format = False
-            if hasattr(self, 'pngFormatRadio'):
-                self.pngFormatRadio.setChecked(True)
-        
-        # Update selected icon based on format
         self.update_selected_icon_format()
         
         # Update the icon preview in metadata panel to show the selected format
@@ -1073,7 +861,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             # Use the SVG's default size, but constrain to target_size
             default_size = renderer.defaultSize()
             if default_size.width() <= 0 or default_size.height() <= 0:
-                default_size = QtCore.QSize(target_size, target_size)  # fallback
+                default_size = QSize(target_size, target_size)
             
             scale = min(target_size / default_size.width(), target_size / default_size.height())
             width = int(default_size.width() * scale)
@@ -1114,65 +902,38 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.iconPreviewLabel.setText("Icon preview not available")
         
-        # Get metadata for the selected icon
-        if filename in self.icon_metadata:
-            metadata = self.icon_metadata[filename]
-            
-            # Extract all metadata fields
-            primary_tag = metadata.get('primary_tag', '')
-            secondary_tags = metadata.get('secondary_tags', '')
-            designer = metadata.get('designer', '')
-            uploader = metadata.get('uploader', '')
-            when_created = metadata.get('when_created', '')
-            when_uploaded = metadata.get('when_uploaded', '')
-            where_created = metadata.get('where_created', '')
-            icon_geography = metadata.get('icon_geography', '')
-            icon_description = metadata.get('icon_description', '')
-            icon_context = metadata.get('icon_context', '')
-            creation_context = metadata.get('creation_context', '')
-            #notes = metadata.get('notes', '')
-            source = metadata.get('source', 'boston_workshop')
-            
-            # Display all metadata fields
-            self.codeValue.setText(primary_tag if primary_tag and primary_tag.strip() else "No category")
-            self.createdByValue.setText(designer if designer else "-")
-            self.createdValue.setText(when_created if when_created else "-")
-            self.modifiedByValue.setText(uploader if uploader else "-")
-            self.modifiedValue.setText(where_created if where_created else "-")
-            
-            if hasattr(self, 'whenUploadedValue'):
-                self.whenUploadedValue.setText(when_uploaded if when_uploaded else "-")
-            
-            if hasattr(self, 'secondaryTagsValue'):
-                self.secondaryTagsValue.setText(secondary_tags if secondary_tags else "-")
-            
-            if hasattr(self, 'iconGeographyValue'):
-                self.iconGeographyValue.setText(icon_geography if icon_geography else "-")
-            
-            if hasattr(self, 'iconDescriptionValue'):
-                self.iconDescriptionValue.setText(icon_description if icon_description else "-")
-            
-            if hasattr(self, 'iconContextValue'):
-                self.iconContextValue.setText(icon_context if icon_context else "-")
-            
-            if hasattr(self, 'creationContextValue'):
-                self.creationContextValue.setText(creation_context if creation_context else "-")
-            
-            #if hasattr(self, 'notesValue'):
-                #self.notesValue.setText(notes if notes else "-")
+        meta = self.icon_metadata.get(filename)
+        if meta:
+            dash = "-"
+            tag = (meta.get("primary_tag") or "").strip()
+            self.codeValue.setText(tag or "No category")
+            self.createdByValue.setText(meta.get("designer") or dash)
+            self.createdValue.setText(meta.get("when_created") or dash)
+            self.modifiedByValue.setText(meta.get("uploader") or dash)
+            self.modifiedValue.setText(meta.get("where_created") or dash)
+            self._set_label("whenUploadedValue", meta.get("when_uploaded"))
+            self._set_label("secondaryTagsValue", meta.get("secondary_tags"))
+            self._set_label("iconGeographyValue", meta.get("icon_geography"))
+            self._set_label("iconDescriptionValue", meta.get("icon_description"))
+            self._set_label("iconContextValue", meta.get("icon_context"))
+            self._set_label("creationContextValue", meta.get("creation_context"))
+            self._set_label("notesValue", meta.get("metadata"))
         else:
-            # Icon not found in mapping - show basic information
             self.codeValue.setText("No category")
             self.createdByValue.setText(filename)
             self.createdValue.setText("-")
             self.modifiedByValue.setText("-")
             self.modifiedValue.setText("-")
-            
-            # Clear all metadata fields
-            for attr in ['whenUploadedValue', 'secondaryTagsValue', 'iconGeographyValue', 
-                        'iconDescriptionValue', 'iconContextValue', 'creationContextValue', 'notesValue']:
-                if hasattr(self, attr):
-                    getattr(self, attr).setText("-")
+            for attr in (
+                "whenUploadedValue",
+                "secondaryTagsValue",
+                "iconGeographyValue",
+                "iconDescriptionValue",
+                "iconContextValue",
+                "creationContextValue",
+                "notesValue",
+            ):
+                self._set_label(attr, None)
 
     def get_selected_icon_symbol(self):
         """
