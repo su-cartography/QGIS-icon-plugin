@@ -6,15 +6,18 @@ This file contains configuration settings for the plugin, including Zenodo URLs
 for downloading icons and metadata files.
 """
 
-# Zenodo DOI and URLs (v3 - Place-based Boston Map Icons)
-# https://zenodo.org/records/18750339
-ZENODO_DOI = "10.5281/zenodo.18750339"
-ZENODO_BASE_URL = "https://zenodo.org/record/18750339/files"
+# Zenodo DOI and URLs (v4)
+# https://zenodo.org/records/20126394
+ZENODO_DOI = "10.5281/zenodo.20126394"
+ZENODO_BASE_URL = "https://zenodo.org/record/20126394/files"
 
 # File URLs on Zenodo (filenames must match the record exactly)
-ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set.zip"
-SVG_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-svgs.zip"  # SVG icons zip (note: "svgs")
-METADATA_EXCEL_URL = f"{ZENODO_BASE_URL}/sample-icon-set.xlsx"
+ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-PNG.zip"
+SVG_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-SVG.zip"
+# Metadata is CSV on v4; plugin also supports .xlsx if you point METADATA_FILE_URL to one
+METADATA_FILE_URL = f"{ZENODO_BASE_URL}/sample-icon-set-metadata.csv"
+# Backward compatibility for imports/tests that still reference METADATA_EXCEL_URL
+METADATA_EXCEL_URL = METADATA_FILE_URL
 
 # Local cache directories
 CACHE_DIR = "cache"

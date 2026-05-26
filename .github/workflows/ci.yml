@@ -32,7 +32,11 @@ jobs:
         run: |
           python -m compileall -q .
 
-      # test/__init__.py imports qgis; run this file directly so metadata checks work without QGIS
+      # test/__init__.py imports qgis; run these files directly so tests work without QGIS
       - name: Validate plugin metadata (no QGIS required)
         run: |
           python test/test_init.py
+
+      - name: Unit tests — config & data_manager (no QGIS required)
+        run: |
+          python test/test_plugin_core.py
