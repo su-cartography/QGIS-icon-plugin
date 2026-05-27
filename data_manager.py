@@ -120,6 +120,7 @@ class DataManager:
     """Manages downloading and caching of plugin data from Zenodo."""
 
     def __init__(self, plugin_dir):
+        """Set cache paths under the plugin directory and create cache folders."""
         self.plugin_dir = Path(plugin_dir)
         self.cache_dir = self.plugin_dir / CACHE_DIR
         self.icons_cache_dir = self.plugin_dir / ICONS_CACHE_DIR
@@ -128,38 +129,47 @@ class DataManager:
             d.mkdir(parents=True, exist_ok=True)
 
     def download_file(self, url, local_path, description="file"):
+        """Download a file from a URL into local_path. Returns True on success."""
         return _download(url, local_path, description)
 
     def _download_and_extract(self, url, label):
+        """Download a Zenodo zip and extract it under cache/."""
         zip_path = self.icons_cache_dir / _zip_basename(url)
         if not _download(url, zip_path, f"{label} zip"):
             return False
         return _extract_zip(zip_path, self.cache_dir, label)
 
     def download_and_extract_icons(self):
+        """Download and extract sample-icon-set-PNG.zip from Zenodo."""
         return self._download_and_extract(ICONS_ZIP_URL, "icons")
 
     def download_and_extract_svgs(self):
+        """Download SVG zip, extract it, and copy SVGs beside PNGs in sample-icon-set-PNG/."""
         if not self._download_and_extract(SVG_ZIP_URL, "SVG icons"):
             return False
         _copy_svgs_into_png_folder(self.cache_dir, self.cache_dir / PNG_FOLDER)
         return True
 
     def download_metadata(self):
+        """Download sample-icon-set-metadata.csv from Zenodo into the metadata cache."""
         path = self.metadata_cache_dir / _zip_basename(METADATA_FILE_URL)
         return _download(METADATA_FILE_URL, path, "metadata file")
 
     def get_icons_directory(self):
+        """Return the path where icon zip files are stored during download."""
         return self.icons_cache_dir
 
     def get_metadata_file(self):
+        """Return the path to the cached metadata CSV file."""
         return self.metadata_cache_dir / _zip_basename(METADATA_FILE_URL)
 
     def icons_exist(self):
+        """True if hash-named PNGs exist under cache/sample-icon-set-PNG/."""
         png_dir = self.cache_dir / PNG_FOLDER
         return png_dir.is_dir() and any(png_dir.glob("*.png"))
 
     def svgs_exist(self):
+        """True if SVG files exist in sample-icon-set-SVG or beside PNGs."""
         for folder in (SVG_FOLDER, PNG_FOLDER):
             svg_dir = self.cache_dir / folder
             if not svg_dir.is_dir():
@@ -169,9 +179,11 @@ class DataManager:
         return False
 
     def metadata_exists(self):
+        """True if the metadata CSV has been downloaded."""
         return self.get_metadata_file().is_file()
 
     def ensure_data_available(self):
+        """Download PNGs, SVGs, and metadata from Zenodo if any are missing from cache."""
         ok = True
         if not self.icons_exist():
             logger.info("Icons not in cache, downloading from Zenodo...")
@@ -186,9 +198,11 @@ class DataManager:
         return ok
 
     def clear_cache(self):
+        """Remove the entire plugin cache directory."""
         _remove_tree(self.cache_dir)
 
     def get_cache_info(self):
+        """Return icon count, metadata presence, and cache path for debugging."""
         png_dir = self.cache_dir / PNG_FOLDER
         icons = list(png_dir.glob("*.png")) if png_dir.is_dir() else []
         return {
@@ -199,6 +213,7 @@ class DataManager:
         }
 
     def check_dependencies(self):
+        """Report whether requests, openpyxl, and zipfile are available."""
         return {
             "requests": REQUESTS_AVAILABLE,
             "openpyxl": importlib.util.find_spec("openpyxl") is not None,
@@ -206,6 +221,7 @@ class DataManager:
         }
 
     def get_installation_instructions(self):
+        """Return pip install hints for any missing optional dependencies."""
         lines = []
         deps = self.check_dependencies()
         if not deps["requests"]:
