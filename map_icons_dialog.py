@@ -33,13 +33,6 @@ from qgis.PyQt.QtCore import Qt, QSize
 from qgis.PyQt.QtWidgets import QLabel, QGridLayout, QMessageBox
 from qgis.PyQt.QtSvg import QSvgRenderer
 
-# Try to import Excel reading libraries for metadata loading
-try:
-    from openpyxl import load_workbook
-    OPENPYXL_AVAILABLE = True
-except ImportError:
-    OPENPYXL_AVAILABLE = False
-
 # Add the plugin directory to Python path for resources_rc import
 import sys
 plugin_dir = os.path.dirname(__file__)
@@ -295,7 +288,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         )
 
     def load_metadata(self):
-        """Load metadata from sample-icon-set-metadata.csv (see METADATA_CSV_HEADERS)."""
+        """Load icon metadata from the cached CSV downloaded from Zenodo."""
         if not self.data_manager:
             logging.error("Data manager not initialized")
             return
@@ -311,50 +304,26 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.show_error_message("Metadata file not found. Please check data download.")
             return
 
-        suffix = metadata_file.suffix.lower()
+        if metadata_file.suffix.lower() != ".csv":
+            self.show_error_message(
+                "Metadata must be a CSV file (sample-icon-set-metadata.csv from Zenodo)."
+            )
+            return
 
         try:
-            if suffix == '.csv':
-                with open(metadata_file, newline='', encoding='utf-8-sig') as f:
-                    reader = csv.reader(f)
-                    all_rows = list(reader)
-                if not all_rows:
-                    raise ValueError("Empty CSV")
-                headers = [str(h).strip() if h else "" for h in all_rows[0]]
-                rows_of_strings = []
-                for raw in all_rows[1:]:
-                    vals = [str(c).strip() if c else "" for c in raw]
-                    if not any(vals):
-                        continue
-                    rows_of_strings.append(vals)
-                self._ingest_metadata_rows(headers, rows_of_strings)
-            else:
-                if not OPENPYXL_AVAILABLE:
-                    logging.error("openpyxl library not available for Excel reading")
-                    self.show_error_message(
-                        "Excel reading library (openpyxl) not available. "
-                        "Please install it: pip install openpyxl"
-                    )
-                    return
-
-                workbook = load_workbook(metadata_file, read_only=True)
-                worksheet = workbook.active
-                headers = [
-                    str(cell.value).strip() if cell.value else "" for cell in worksheet[1]
-                ]
-                rows_of_strings = []
-                for row in worksheet.iter_rows(min_row=2):
-                    vals = []
-                    for i in range(len(headers)):
-                        if i < len(row) and row[i].value is not None:
-                            vals.append(str(row[i].value).strip())
-                        else:
-                            vals.append("")
-                    if not any(vals):
-                        continue
-                    rows_of_strings.append(vals)
-                workbook.close()
-                self._ingest_metadata_rows(headers, rows_of_strings)
+            with open(metadata_file, newline="", encoding="utf-8-sig") as f:
+                reader = csv.reader(f)
+                all_rows = list(reader)
+            if not all_rows:
+                raise ValueError("Empty CSV")
+            headers = [str(h).strip() if h else "" for h in all_rows[0]]
+            rows_of_strings = []
+            for raw in all_rows[1:]:
+                vals = [str(c).strip() if c else "" for c in raw]
+                if not any(vals):
+                    continue
+                rows_of_strings.append(vals)
+            self._ingest_metadata_rows(headers, rows_of_strings)
 
         except Exception as e:
             logging.error(f"Error loading metadata file: {e}")

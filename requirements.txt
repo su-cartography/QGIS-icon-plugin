@@ -1,8 +1,5 @@
 # Python dependencies for Map Icons QGIS Plugin
-# These packages are required for the plugin to function properly
-
-# Excel file reading
-openpyxl>=3.0.0
+# Metadata is read from CSV using the built-in csv module (no openpyxl).
 
 # HTTP requests for downloading from Zenodo
 requests>=2.25.0
