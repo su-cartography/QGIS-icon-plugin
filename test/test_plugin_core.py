@@ -158,7 +158,6 @@ class TestDataManager(unittest.TestCase):
         dm = DataManager(str(self.plugin_dir))
         deps = dm.check_dependencies()
         self.assertIn("requests", deps)
-        self.assertIn("openpyxl", deps)
         self.assertIn("zipfile", deps)
         self.assertTrue(deps["zipfile"])
 

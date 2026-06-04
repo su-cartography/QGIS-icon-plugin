@@ -1,10 +1,5 @@
 # Python dependencies for Map Icons QGIS Plugin
-# These packages are required for the plugin to function properly
-
-# Excel file reading
-openpyxl>=3.0.0
 
 # HTTP requests for downloading from Zenodo
 requests>=2.25.0
 
-# Note: QGIS provides its own PyQt bindings, so they are not listed here

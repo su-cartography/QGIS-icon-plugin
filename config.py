@@ -14,7 +14,7 @@ ZENODO_BASE_URL = "https://zenodo.org/record/20126394/files"
 # File URLs on Zenodo (filenames must match the record exactly)
 ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-PNG.zip"
 SVG_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-SVG.zip"
-# Metadata is CSV on v4; plugin also supports .xlsx if you point METADATA_FILE_URL to one
+# Metadata CSV from Zenodo v4 (read with Python's built-in csv module)
 METADATA_FILE_URL = f"{ZENODO_BASE_URL}/sample-icon-set-metadata.csv"
 # Backward compatibility for imports/tests that still reference METADATA_EXCEL_URL
 METADATA_EXCEL_URL = METADATA_FILE_URL

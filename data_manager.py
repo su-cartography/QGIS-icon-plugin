@@ -5,7 +5,6 @@ Data Manager for Map Icons QGIS Plugin
 Downloads and caches icons, SVGs, and metadata from Zenodo.
 """
 
-import importlib.util
 import logging
 import shutil
 import zipfile
@@ -213,19 +212,16 @@ class DataManager:
         }
 
     def check_dependencies(self):
-        """Report whether requests, openpyxl, and zipfile are available."""
+        """Report whether requests and zipfile are available."""
         return {
             "requests": REQUESTS_AVAILABLE,
-            "openpyxl": importlib.util.find_spec("openpyxl") is not None,
             "zipfile": True,
         }
 
     def get_installation_instructions(self):
-        """Return pip install hints for any missing optional dependencies."""
+        """Return pip install hints for any missing dependencies."""
         lines = []
         deps = self.check_dependencies()
         if not deps["requests"]:
             lines.append("Install requests: pip install requests")
-        if not deps["openpyxl"]:
-            lines.append("Install openpyxl: pip install openpyxl")
         return "\n".join(lines) if lines else "All dependencies are available!"

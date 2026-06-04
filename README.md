@@ -51,9 +51,8 @@ The plugin includes icons for various mapping categories:
 
 **Important**: QGIS uses its own Python environment. You must install dependencies manually.
 
-The plugin requires these Python packages:
-- `openpyxl` (≥3.0.0) - For Excel file reading
-- `requests` (≥2.25.0) - For downloading from Zenodo
+The plugin requires this Python package for downloading from Zenodo:
+- `requests` (≥2.25.0)
 
 #### Installing Dependencies
 
@@ -67,20 +66,20 @@ The plugin requires these Python packages:
 3. Run:
    ```python
    import subprocess, sys
-   subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "requests"])
+   subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
    ```
 
 **Option 3: Using Command Line (Windows with OSGeo4W)**
 1. Open **OSGeo4W Shell**
 2. Run:
    ```bash
-   python -m pip install openpyxl requests
+   python -m pip install requests
    ```
 
 **Option 4: Using QGIS Python Executable**
-- **Windows**: `"C:\Program Files\QGIS 3.x\bin\python3.exe" -m pip install openpyxl requests`
-- **macOS**: `/Applications/QGIS.app/Contents/MacOS/bin/python3 -m pip install openpyxl requests`
-- **Linux**: `/usr/bin/python3 -m pip install openpyxl requests`
+- **Windows**: `"C:\Program Files\QGIS 3.x\bin\python3.exe" -m pip install requests`
+- **macOS**: `/Applications/QGIS.app/Contents/MacOS/bin/python3 -m pip install requests`
+- **Linux**: `/usr/bin/python3 -m pip install requests`
 
 **Note**: If pip is not available in your QGIS Python environment, you may need to install it first through your QGIS installation method (e.g., OSGeo4W setup).
 
@@ -128,10 +127,9 @@ The plugin can be configured through the `config.py` file:
 - Clear plugin cache and restart QGIS
 
 **Metadata not loading**
-- Ensure `openpyxl` package is installed in QGIS's Python environment (see Dependencies section above)
-- Check Excel file format compatibility
+- Ensure the metadata CSV downloaded from Zenodo (check plugin cache folder)
 - Verify Zenodo file accessibility
-- Check QGIS Python Console for import errors
+- Check QGIS Python Console for errors
 
 **Download failures**
 - Check firewall/network settings
