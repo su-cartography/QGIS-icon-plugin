@@ -54,8 +54,6 @@ The plugin includes icons for various mapping categories:
 The plugin requires this Python package for downloading from Zenodo:
 - `requests` (≥2.25.0)
 
-Metadata is loaded from CSV using Python's built-in `csv` module (no extra install).
-
 #### Installing Dependencies
 
 **Option 1: Using qpip Plugin (Recommended)**
