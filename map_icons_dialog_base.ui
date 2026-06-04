@@ -117,6 +117,15 @@ QScrollArea > QWidget > QWidget {
           <string>Metadata</string>
          </property>
          <layout class="QFormLayout" name="metadataForm">
+          <property name="fieldGrowthPolicy">
+           <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+          </property>
+          <property name="labelAlignment">
+           <set>Qt::AlignLeft|Qt::AlignTop</set>
+          </property>
+          <property name="formAlignment">
+           <set>Qt::AlignLeft|Qt::AlignTop</set>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="codeLabel">
             <property name="text">
@@ -206,6 +215,9 @@ QScrollArea > QWidget > QWidget {
             <property name="text">
              <string>Secondary Tags:</string>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
            </widget>
           </item>
           <item row="6" column="1">
@@ -216,12 +228,24 @@ QScrollArea > QWidget > QWidget {
             <property name="wordWrap">
              <bool>true</bool>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="7" column="0">
            <widget class="QLabel" name="iconGeographyLabel">
             <property name="text">
              <string>Icon Geography:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
             </property>
            </widget>
           </item>
@@ -233,12 +257,24 @@ QScrollArea > QWidget > QWidget {
             <property name="wordWrap">
              <bool>true</bool>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="8" column="0">
            <widget class="QLabel" name="iconDescriptionLabel">
             <property name="text">
              <string>Icon Description:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
             </property>
            </widget>
           </item>
@@ -253,12 +289,21 @@ QScrollArea > QWidget > QWidget {
             <property name="alignment">
              <set>Qt::AlignLeft|Qt::AlignTop</set>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="9" column="0">
            <widget class="QLabel" name="iconContextLabel">
             <property name="text">
              <string>Icon Context:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
             </property>
            </widget>
           </item>
@@ -270,6 +315,15 @@ QScrollArea > QWidget > QWidget {
             <property name="wordWrap">
              <bool>true</bool>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="10" column="0">
@@ -277,18 +331,15 @@ QScrollArea > QWidget > QWidget {
             <property name="text">
              <string>Creation Context:</string>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
            </widget>
           </item>
           <item row="10" column="1">
            <widget class="QLabel" name="creationContextValue">
             <property name="text">
              <string>-</string>
-            </property>
-            <property name="minimumHeight">
-             <number>60</number>
-            </property>
-            <property name="minimumWidth">
-             <number>200</number>
             </property>
             <property name="wordWrap">
              <bool>true</bool>
@@ -315,6 +366,9 @@ QScrollArea > QWidget > QWidget {
             <property name="text">
              <string>Notes:</string>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
            </widget>
           </item>
           <item row="11" column="1">
@@ -327,6 +381,12 @@ QScrollArea > QWidget > QWidget {
             </property>
             <property name="alignment">
              <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
