@@ -1,7 +1,5 @@
 # Python dependencies for Map Icons QGIS Plugin
-# Metadata is read from CSV using the built-in csv module (no openpyxl).
 
 # HTTP requests for downloading from Zenodo
 requests>=2.25.0
 
-# Note: QGIS provides its own PyQt bindings, so they are not listed here
