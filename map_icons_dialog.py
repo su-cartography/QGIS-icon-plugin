@@ -29,8 +29,15 @@ import logging
 from pathlib import Path
 
 from qgis.PyQt import uic, QtWidgets, QtGui
-from qgis.PyQt.QtCore import Qt, QSize
-from qgis.PyQt.QtWidgets import QLabel, QGridLayout, QMessageBox
+from qgis.PyQt.QtCore import Qt, QSize, QTimer, QEvent
+from qgis.PyQt.QtWidgets import (
+    QLabel,
+    QGridLayout,
+    QMessageBox,
+    QFormLayout,
+    QSizePolicy,
+    QSpacerItem,
+)
 from qgis.PyQt.QtSvg import QSvgRenderer
 
 # Try to import Excel reading libraries for metadata loading
@@ -76,6 +83,32 @@ METADATA_CSV_HEADERS = (
     "creation-context",
 )
 
+# Metadata panel value labels that may wrap to multiple lines
+
+METADATA_WRAP_ROWS = (
+    ("secondaryTagsLabel", "secondaryTagsValue"),
+    ("iconGeographyLabel", "iconGeographyValue"),
+    ("iconDescriptionLabel", "iconDescriptionValue"),
+    ("iconContextLabel", "iconContextValue"),
+    ("creationContextLabel", "creationContextValue"),
+    ("notesLabel", "notesValue"),
+)
+
+METADATA_ALL_VALUE_LABELS = (
+    "codeValue",
+    "createdByValue",
+    "createdValue",
+    "modifiedByValue",
+    "modifiedValue",
+    "whenUploadedValue",
+    "secondaryTagsValue",
+    "iconGeographyValue",
+    "iconDescriptionValue",
+    "iconContextValue",
+    "creationContextValue",
+    "notesValue",
+)
+
 # Load the UI definition file
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'map_icons_dialog_base.ui'))
@@ -96,6 +129,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Set up the UI
         self.setupUi(self)
+        self._configure_metadata_form()
         
         # Initialize instance variables
         self.selected_icon = None       # Store the currently selected icon path
@@ -214,9 +248,113 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         """Handle Cancel button click - hide metadata panel and clear selection."""
         self.clear_selection()
 
+    def _configure_metadata_form(self):
+        """Top-align rows, span values full width, and keep row spacing even."""
+        if not hasattr(self, "metadataForm"):
+            return
+        align = Qt.AlignLeft | Qt.AlignTop
+        self.metadataForm.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        self.metadataForm.setLabelAlignment(align)
+        self.metadataForm.setFormAlignment(align)
+        self.metadataForm.setVerticalSpacing(6)
+        self.metadataForm.setHorizontalSpacing(10)
+        for label_name, value_name in METADATA_WRAP_ROWS:
+            if hasattr(self, label_name) and hasattr(self, value_name):
+                label = getattr(self, label_name)
+                value = getattr(self, value_name)
+                label.setAlignment(align)
+                value.setWordWrap(True)
+                value.setAlignment(align)
+                self.metadataForm.setAlignment(label, align)
+                self.metadataForm.setAlignment(value, align)
+        for name in METADATA_ALL_VALUE_LABELS:
+            if hasattr(self, name):
+                label = getattr(self, name)
+                label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        if hasattr(self, "metadataGroup"):
+            self.metadataGroup.setSizePolicy(
+                QSizePolicy.Expanding, QSizePolicy.Preferred
+            )
+        if hasattr(self, "metadataScrollContents"):
+            self.metadataScrollContents.setSizePolicy(
+                QSizePolicy.Expanding, QSizePolicy.Preferred
+            )
+        if hasattr(self, "metadataScrollArea"):
+            self.metadataScrollArea.setWidgetResizable(True)
+            viewport = self.metadataScrollArea.viewport()
+            if viewport is not None:
+                viewport.installEventFilter(self)
+        if not getattr(self, "_metadata_form_spacer_added", False):
+            self.metadataForm.addItem(
+                QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+            )
+            self._metadata_form_spacer_added = True
+        if hasattr(self, "metadataLayout") and hasattr(self, "metadataScrollArea"):
+            idx = self.metadataLayout.indexOf(self.metadataScrollArea)
+            if idx >= 0:
+                self.metadataLayout.setStretch(idx, 1)
+
+    def eventFilter(self, obj, event):
+        """Recalculate wrapped label layout when the metadata panel is resized."""
+        if (
+            hasattr(self, "metadataScrollArea")
+            and obj is self.metadataScrollArea.viewport()
+            and event.type() == QEvent.Resize
+        ):
+            QTimer.singleShot(0, self._sync_metadata_layout)
+        return super(mapIconsDialog, self).eventFilter(obj, event)
+
+    def _metadata_field_column_width(self, panel_width):
+        """Shared width for every value column cell in the metadata form."""
+        return max(panel_width - 130, 180)
+
+    def _sync_metadata_layout(self):
+        """Keep all value labels full-width with even row spacing."""
+        if not hasattr(self, "metadataScrollArea"):
+            return
+        viewport = self.metadataScrollArea.viewport()
+        if viewport is None or viewport.width() <= 1:
+            return
+        panel_width = viewport.width()
+        field_width = self._metadata_field_column_width(panel_width)
+        if hasattr(self, "metadataScrollContents"):
+            self.metadataScrollContents.setMinimumWidth(panel_width)
+        if hasattr(self, "metadataGroup"):
+            self.metadataGroup.setMinimumWidth(panel_width)
+        self.metadataForm.update()
+        for name in METADATA_ALL_VALUE_LABELS:
+            if not hasattr(self, name):
+                continue
+            label = getattr(self, name)
+            label.setWordWrap(True)
+            label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+            label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            label.setMinimumWidth(field_width)
+            text = (label.text() or "").strip()
+            if text and text != "-":
+                label.setMinimumHeight(label.heightForWidth(field_width))
+            else:
+                label.setMinimumHeight(0)
+        if hasattr(self, "metadataScrollContents"):
+            self.metadataScrollContents.updateGeometry()
+
     def _set_label(self, widget_name, value):
-        if hasattr(self, widget_name):
-            getattr(self, widget_name).setText(value if value else "-")
+        if not hasattr(self, widget_name):
+            return
+        label = getattr(self, widget_name)
+        text = value if value else "-"
+        if widget_name in METADATA_ALL_VALUE_LABELS:
+            label.setWordWrap(True)
+            label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        label.setText(text)
+
+    def _reset_metadata_label_heights(self):
+        """Clear stale minimum sizes before showing a new icon."""
+        for name in METADATA_ALL_VALUE_LABELS:
+            if hasattr(self, name):
+                widget = getattr(self, name)
+                widget.setMinimumHeight(0)
+                widget.setMinimumWidth(0)
 
     @staticmethod
     def _metadata_header_indices(headers):
@@ -902,6 +1040,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.iconPreviewLabel.setText("Icon preview not available")
         
+        self._reset_metadata_label_heights()
         meta = self.icon_metadata.get(filename)
         if meta:
             dash = "-"
@@ -934,6 +1073,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 "notesValue",
             ):
                 self._set_label(attr, None)
+
+        QTimer.singleShot(0, self._sync_metadata_layout)
 
     def get_selected_icon_symbol(self):
         """

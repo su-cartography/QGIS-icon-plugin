@@ -102,14 +102,6 @@ QScrollArea > QWidget > QWidget {
           <enum>QFrame::NoFrame</enum>
          </property>
          <widget class="QWidget" name="metadataScrollContents">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>0</y>
-            <width>350</width>
-            <height>600</height>
-           </rect>
-          </property>
           <layout class="QVBoxLayout" name="metadataScrollLayout">
            <item>
             <widget class="QGroupBox" name="metadataGroup">
@@ -119,6 +111,12 @@ QScrollArea > QWidget > QWidget {
          <layout class="QFormLayout" name="metadataForm">
           <property name="fieldGrowthPolicy">
            <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+          </property>
+          <property name="verticalSpacing">
+           <number>6</number>
+          </property>
+          <property name="horizontalSpacing">
+           <number>10</number>
           </property>
           <property name="labelAlignment">
            <set>Qt::AlignLeft|Qt::AlignTop</set>
@@ -138,6 +136,18 @@ QScrollArea > QWidget > QWidget {
             <property name="text">
              <string>-</string>
             </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="1" column="0">
@@ -151,6 +161,18 @@ QScrollArea > QWidget > QWidget {
            <widget class="QLabel" name="createdByValue">
             <property name="text">
              <string>-</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
@@ -166,6 +188,18 @@ QScrollArea > QWidget > QWidget {
             <property name="text">
              <string>-</string>
             </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="3" column="0">
@@ -179,6 +213,18 @@ QScrollArea > QWidget > QWidget {
            <widget class="QLabel" name="modifiedByValue">
             <property name="text">
              <string>-</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
@@ -194,6 +240,18 @@ QScrollArea > QWidget > QWidget {
             <property name="text">
              <string>-</string>
             </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="5" column="0">
@@ -207,6 +265,18 @@ QScrollArea > QWidget > QWidget {
            <widget class="QLabel" name="whenUploadedValue">
             <property name="text">
              <string>-</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
