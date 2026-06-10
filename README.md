@@ -49,39 +49,8 @@ The plugin includes icons for various mapping categories:
 
 ### Dependencies
 
-**Important**: QGIS uses its own Python environment. You must install dependencies manually.
-
-The plugin requires this Python package for downloading from Zenodo:
-- `requests` (≥2.25.0)
-
-#### Installing Dependencies
-
-**Option 1: Using qpip Plugin (Recommended)**
-1. Install the [qpip plugin](https://plugins.qgis.org/plugins/qpip/) from QGIS Plugin Manager
-2. qpip will automatically detect and install missing dependencies for all plugins
-
-**Option 2: Using QGIS Python Console**
-1. Open QGIS
-2. Go to **Plugins** → **Python Console**
-3. Run:
-   ```python
-   import subprocess, sys
-   subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
-   ```
-
-**Option 3: Using Command Line (Windows with OSGeo4W)**
-1. Open **OSGeo4W Shell**
-2. Run:
-   ```bash
-   python -m pip install requests
-   ```
-
-**Option 4: Using QGIS Python Executable**
-- **Windows**: `"C:\Program Files\QGIS 3.x\bin\python3.exe" -m pip install requests`
-- **macOS**: `/Applications/QGIS.app/Contents/MacOS/bin/python3 -m pip install requests`
-- **Linux**: `/usr/bin/python3 -m pip install requests`
-
-**Note**: If pip is not available in your QGIS Python environment, you may need to install it first through your QGIS installation method (e.g., OSGeo4W setup).
+No additional Python packages are required. The plugin uses the Python standard
+library (`urllib.request`, `csv`, `zipfile`) and QGIS's bundled PyQt.
 
 ## Usage
 
