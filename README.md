@@ -1,206 +1,116 @@
 # Map Icons QGIS Plugin
 
-A comprehensive QGIS plugin that provides a wide range of map icons with metadata display, designed for mapping applications. The plugin automatically downloads icons and metadata from Zenodo, ensuring users always have access to the latest icon library.
+A QGIS plugin that provides map icons with rich metadata. Icons and metadata are
+downloaded automatically from Zenodo on first use and cached locally for faster
+access afterward.
 
 ## Features
 
-- **Automatic Data Management**: Automatically downloads icons and metadata from Zenodo
-- **Rich Icon Library**: Access to hundreds of professionally designed map icons
-- **Primary Tag Labels**: Icons display descriptive category labels (e.g., "university", "park", "coffee")
-- **Comprehensive Metadata**: View detailed information about each icon including designer, creation date, and context
-- **Smart Organization**: Icons with labels displayed first, followed by unlabeled icons
-- **Easy Integration**: Apply selected icons directly to QGIS point layers
-- **Caching System**: Efficient local caching to minimize repeated downloads
+- **Automatic data management** — downloads PNG/SVG icons and CSV metadata from Zenodo
+- **Searchable icon grid** — filter by primary and secondary tags
+- **Metadata panel** — designer, tags, geography, description, context, and more
+- **PNG and SVG** — choose format when applying icons to point layers
+- **Local caching** — data stored under `cache/` inside the plugin folder
 
-## Icon Categories
+## Tutorial: Quick start
 
-The plugin includes icons for various mapping categories:
-- **Education**: university, high-school, elementary
-- **Recreation**: park, playground, gym, basketball courts
-- **Transportation**: walking-path, traffic
-- **Commerce**: coffee shops, shoe stores, Newbury Comics
-- **Landmarks**: historical landmarks, Harvard, Empire
-- **Housing**: luxury condos, Boston Housing Authority projects
-- **Nature**: esplanade, concentration of tulips/dahlias
-- **Events**: marathon, food festival, rally
-- **And many more...**
+1. Install the plugin (see [Installation](#installation) below).
+2. In QGIS, open **Plugins → Map Icons → Map Icons**.
+3. On first launch, allow the plugin to download data from Zenodo (requires internet).
+4. Browse or search icons, click one to view metadata in the right panel.
+5. Select a point layer in your map, choose PNG or SVG if available, and click **OK**.
 
 ## Installation
 
 ### Prerequisites
-- QGIS 3.0 or higher
-- Python 3.6 or higher
-- Internet connection for initial data download
 
-### Method 1: QGIS Plugin Manager (Recommended)
+- QGIS 3.0 or higher
+- Internet connection for the initial download
+
+### Option 1: QGIS Plugin Manager (recommended)
+
 1. Open QGIS
-2. Go to **Plugins** → **Manage and Install Plugins**
-3. Search for "Map Icons"
+2. Go to **Plugins → Manage and Install Plugins**
+3. Search for **Map Icons**
 4. Click **Install Plugin**
 
-### Method 2: Manual Installation
-1. Download the plugin source code
-2. Extract to your QGIS plugins directory:
-   - **Windows**: `C:\Users\[username]\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\`
-   - **macOS**: `~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/`
-   - **Linux**: `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/`
+### Option 2: Manual installation
+
+1. Clone or download this repository
+2. Copy the plugin folder into your QGIS plugins directory:
+
+| OS | Path |
+|----|------|
+| Windows | `C:\Users\<username>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\` |
+| macOS | `~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/` |
+| Linux | `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/` |
+
 3. Restart QGIS
-4. Enable the plugin in **Plugins** → **Manage and Install Plugins**
-
-### Dependencies
-
-**Important**: QGIS uses its own Python environment. You must install dependencies manually.
-
-The plugin requires this Python package for downloading from Zenodo:
-- `requests` (≥2.25.0)
-
-#### Installing Dependencies
-
-**Option 1: Using qpip Plugin (Recommended)**
-1. Install the [qpip plugin](https://plugins.qgis.org/plugins/qpip/) from QGIS Plugin Manager
-2. qpip will automatically detect and install missing dependencies for all plugins
-
-**Option 2: Using QGIS Python Console**
-1. Open QGIS
-2. Go to **Plugins** → **Python Console**
-3. Run:
-   ```python
-   import subprocess, sys
-   subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
-   ```
-
-**Option 3: Using Command Line (Windows with OSGeo4W)**
-1. Open **OSGeo4W Shell**
-2. Run:
-   ```bash
-   python -m pip install requests
-   ```
-
-**Option 4: Using QGIS Python Executable**
-- **Windows**: `"C:\Program Files\QGIS 3.x\bin\python3.exe" -m pip install requests`
-- **macOS**: `/Applications/QGIS.app/Contents/MacOS/bin/python3 -m pip install requests`
-- **Linux**: `/usr/bin/python3 -m pip install requests`
-
-**Note**: If pip is not available in your QGIS Python environment, you may need to install it first through your QGIS installation method (e.g., OSGeo4W setup).
+4. Enable the plugin under **Plugins → Manage and Install Plugins**
 
 ## Usage
 
-### Getting Started
-1. **Launch the Plugin**: Go to **Plugins** → **Map Icons** → **Map Icons**
-2. **Initial Setup**: On first run, the plugin will automatically download icons and metadata from Zenodo
-3. **Browse Icons**: Browse through the organized grid of icons with their category labels
-4. **Select an Icon**: Click on any icon to view its detailed metadata in the right panel
-5. **Apply to Map**: Select a point layer in QGIS and click **OK** to apply the selected icon
+- **Search** — use the search box to filter by primary or secondary tags
+- **Metadata** — click an icon to show details in the side panel
+- **Format** — switch between PNG and SVG when both are available
+- **Apply** — select a point layer, pick an icon, click **OK**
 
-### Interface Features
-- **Icon Grid**: Organized display of icons with primary tag labels
-- **Metadata Panel**: Detailed information about selected icons
-- **Search and Filter**: Find specific icon categories quickly
-- **Preview**: See how icons will look on your map
+## Data source
 
-### Data Management
-- **Automatic Updates**: Plugin checks for new data on startup
-- **Local Caching**: Icons and metadata are cached locally for fast access
-- **Manual Refresh**: Clear cache and re-download data if needed
+Icons and metadata come from the Boston Workshop Icons collection on Zenodo:
 
-## Data Source
+- **DOI**: [10.5281/zenodo.20126394](https://doi.org/10.5281/zenodo.20126394)
+- **Record**: [zenodo.org/records/20126394](https://zenodo.org/records/20126394)
+- **License**: Creative Commons Attribution 4.0 International (dataset)
 
-All icons and metadata are sourced from the **Boston Workshop Icons** project, available on Zenodo:
-- **DOI**: [10.5281/zenodo.16882205](https://doi.org/10.5281/zenodo.16882205)
-- **Source**: Created as part of "Mapping Boston through Place" workshop at the Leventhal Map and Education Center
-- **License**: Creative Commons Attribution 4.0 International
-
-## Configuration
-
-The plugin can be configured through the `config.py` file:
-- **Zenodo URLs**: Links to icon and metadata files
-- **Display Settings**: Icon size, grid layout, label styling
-- **Cache Directories**: Local storage locations
 
 ## Troubleshooting
 
-### Common Issues
+**Icons or metadata not loading**
 
-**Icons not displaying**
-- Check internet connection for initial download
-- Verify QGIS plugin directory permissions
-- Clear plugin cache and restart QGIS
+- Check your internet connection on first run
+- Check **View → Panels → Log Messages** for plugin errors
+- Delete the `cache/` folder inside the plugin directory and restart QGIS to re-download
 
-**Metadata not loading**
-- Ensure the metadata CSV downloaded from Zenodo (check plugin cache folder)
-- Verify Zenodo file accessibility
-- Check QGIS Python Console for errors
+**Plugin not visible after manual install**
 
-**Download failures**
-- Check firewall/network settings
-- Verify Zenodo service status
-- Try clearing cache and restarting
+- Confirm the folder is directly under `plugins/` (not nested incorrectly)
+- Restart QGIS and enable the plugin in the Plugin Manager
 
-### Logs and Debugging
-- Enable QGIS logging for detailed error information
-- Check plugin cache directory for downloaded files
-- Verify Python package installations
+## Contributing
+
+Contributions are welcome! Please read:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — development setup, tests, and pull request workflow
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community standards
+
+Report bugs or request features via
+[GitHub Issues](https://github.com/su-cartography/QGIS-icon-plugin/issues).
 
 ## Development
 
-### Project Structure
-```
-map_icons/
-├── __init__.py              # Plugin initialization
-├── map_icons.py             # Main plugin class
-├── map_icons_dialog.py      # Main dialog interface
-├── config.py                # Configuration settings
-├── data_manager.py          # Data download and caching
-├── requirements.txt         # Python dependencies
-├── README.md               # This file
-└── cache/                  # Local data cache (auto-created)
-    ├── icons/              # Downloaded icon files
-    └── metadata/           # Downloaded metadata files
-```
-
-### Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-### Building from Source
 ```bash
-# Clone repository
-git clone [repository-url]
-cd map_icons
-
-# Install dependencies
+git clone https://github.com/su-cartography/QGIS-icon-plugin.git
+cd QGIS-icon-plugin
 pip install -r requirements.txt
-
-# Run tests (if available)
-python -m pytest tests/
+python test/test_init.py
+python test/test_plugin_core.py
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
+
+## Contact
+
+- **Issues**: [github.com/su-cartography/QGIS-icon-plugin/issues](https://github.com/su-cartography/QGIS-icon-plugin/issues)
+- **Maintainer**: Moses Kamya — mkamya@syr.edu
 
 ## License
 
-This plugin is released under the **GNU General Public License v2.0** (GPL-2.0).
-
-## Support
-
-- **Issues**: Report bugs and feature requests via GitHub Issues
-- **Documentation**: See the help files included with the plugin
-- **Community**: Join QGIS user forums for general support
+This plugin is licensed under the GNU General Public License. See [LICENSE.md](LICENSE.md).
 
 ## Acknowledgments
 
-- **Icon Designers**: Workshop participants who created the original icons
-- **Leventhal Map and Education Center**: Hosting the icon creation workshop
-- **QGIS Community**: Providing the excellent mapping platform
-- **Zenodo**: Hosting the icon library and metadata
-
-## Version History
-
-- **v1.0.0**: Initial release with Zenodo integration
-- **v0.9.0**: Beta version with primary tag labeling
-- **v0.8.0**: Alpha version with basic icon display
-
----
-
-**Note**: This plugin requires an internet connection for initial setup and data updates. All data is cached locally for offline use after the first download. 
+- Workshop participants who created the original icons
+- Leventhal Map and Education Center — *Mapping Boston through Place* workshop
+- [Zenodo](https://zenodo.org/) for hosting the icon library and metadata
+- The QGIS community
