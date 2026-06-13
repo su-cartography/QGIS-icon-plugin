@@ -1,16 +1,17 @@
-# Map Icons QGIS Plugin
+## galleryofpossibilities (GAL.op): A QGIS plugin for place-based map icons
 
-A QGIS plugin that provides map icons with rich metadata. Icons and metadata are
-downloaded automatically from Zenodo on first use and cached locally for faster
-access afterward.
+A QGIS plugin and place-based map icon library for the city of Boston initially comprised of map icons generated in community workshops. Map icons reflect experiences and power dynamics of place and include rich metadata. Icons and metadata are downloaded automatically from Zenodo on first use and cached locally for faster access afterward.
 
 ## Features
 
 - **Automatic data management** — downloads PNG/SVG icons and CSV metadata from Zenodo
-- **Searchable icon grid** — filter by primary and secondary tags
-- **Metadata panel** — designer, tags, geography, description, context, and more
-- **PNG and SVG** — choose format when applying icons to point layers
 - **Local caching** — data stored under `cache/` inside the plugin folder
+- **Metadata** — designer, tags, geography, description, context, and more
+- **File Format** — choose betwen SVGs and PNGs when applying icons to point layers
+- **Search** — filter by primary, secondary, designer, and geography tags
+- **Stylize** — customize size, line color, and background color
+- **Favorites** — create a personalized icon library
+
 
 ## Tutorial: Quick start
 
@@ -18,7 +19,7 @@ access afterward.
 2. In QGIS, open **Plugins → Map Icons → Map Icons**.
 3. On first launch, allow the plugin to download data from Zenodo (requires internet).
 4. Browse or search icons, click one to view metadata in the right panel.
-5. Select a point layer in your map, choose PNG or SVG if available, and click **OK**.
+5. Create a point feature or elect a point layer in your map, choose PNG or SVG if available, and click **OK**.
 
 ## Installation
 
@@ -31,7 +32,7 @@ access afterward.
 
 1. Open QGIS
 2. Go to **Plugins → Manage and Install Plugins**
-3. Search for **Map Icons**
+3. Search for **GAL.op**
 4. Click **Install Plugin**
 
 ### Option 2: Manual installation
@@ -48,12 +49,6 @@ access afterward.
 3. Restart QGIS
 4. Enable the plugin under **Plugins → Manage and Install Plugins**
 
-## Usage
-
-- **Search** — use the search box to filter by primary or secondary tags
-- **Metadata** — click an icon to show details in the side panel
-- **Format** — switch between PNG and SVG when both are available
-- **Apply** — select a point layer, pick an icon, click **OK**
 
 ## Data source
 
@@ -111,6 +106,9 @@ This plugin is licensed under the GNU General Public License. See [LICENSE.md](L
 ## Acknowledgments
 
 - Workshop participants who created the original icons
-- Leventhal Map and Education Center — *Mapping Boston through Place* workshop
+- Moses Kamya and Bhumika Dashari
+- Open Source Program Office (Collin Capano and Will Gearty) at Syracuse University (Sloan Funding: G-2023-20946 and G-2025-79206)
+- The Maxwell School at Syrcause University (Tenth Decade Fund)
+- Leventhal Map and Education Center at the Boston Public Library
 - [Zenodo](https://zenodo.org/) for hosting the icon library and metadata
 - The QGIS community
