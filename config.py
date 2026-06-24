@@ -8,18 +8,21 @@ for downloading icons and metadata files.
 
 
 
-# Zenodo DOI and URLs (v5)
-# https://zenodo.org/records/20397958
-ZENODO_DOI = "10.5281/zenodo.20397958"
-ZENODO_BASE_URL = "https://zenodo.org/records/20397958/files"
+# Zenodo concept DOI (always resolves to the latest published version)
+# https://doi.org/10.5281/zenodo.16882204
+ZENODO_CONCEPT_DOI = "10.5281/zenodo.16882204"
+ZENODO_CONCEPT_RECID = 16882204
+ZENODO_API_LATEST_URL = (
+    f"https://zenodo.org/api/records/{ZENODO_CONCEPT_RECID}"
+)
 
-# File URLs on Zenodo (filenames must match the record exactly)
-ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/map-icon-png.zip"
-SVG_ZIP_URL = f"{ZENODO_BASE_URL}/map-icon-svg.zip"
-METADATA_FILE_URL = f"{ZENODO_BASE_URL}/map-icon-metadata.csv"
+# Backward-compatible alias used in docs and citations
+ZENODO_DOI = ZENODO_CONCEPT_DOI
 
-# Backward compatibility for imports/tests that still reference METADATA_EXCEL_URL
-METADATA_EXCEL_URL = METADATA_FILE_URL
+# Expected asset filenames on Zenodo (v5 naming convention)
+ZENODO_PNG_ZIP_NAME = "map-icon-png.zip"
+ZENODO_SVG_ZIP_NAME = "map-icon-svg.zip"
+ZENODO_METADATA_CSV_NAME = "map-icon-metadata.csv"
 
 # Folder names inside downloaded zips
 PNG_FOLDER = "map-icon-png"
@@ -48,6 +51,7 @@ METADATA_CSV_HEADERS = (
 CACHE_DIR = "cache"
 ICONS_CACHE_DIR = "cache/icons"
 METADATA_CACHE_DIR = "cache/metadata"
+ZENODO_RECORD_ID_FILE = "cache/zenodo_record_id.txt"
 
 # Plugin settings
 
