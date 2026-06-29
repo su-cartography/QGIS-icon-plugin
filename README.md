@@ -40,24 +40,42 @@ A QGIS plugin and place-based map icon library for the city of Boston initially 
 1. Clone or download this repository
 2. Copy the plugin folder into your QGIS plugins directory:
 
-| OS | Path |
-|----|------|
-| Windows | `C:\Users\<username>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\` |
-| macOS | `~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/` |
-| Linux | `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/` |
+No additional Python packages are required. The plugin uses the Python standard
+library (`urllib.request`, `csv`, `zipfile`) and QGIS's bundled PyQt.
 
-3. Restart QGIS
-4. Enable the plugin under **Plugins → Manage and Install Plugins**
+## Usage
 
+### Getting Started
+1. **Launch the Plugin**: Go to **Plugins** → **Map Icons** → **Map Icons**
+2. **Initial Setup**: On first run, the plugin will automatically download icons and metadata from Zenodo
+3. **Browse Icons**: Browse through the organized grid of icons with their category labels
+4. **Select an Icon**: Click on any icon to view its detailed metadata in the right panel
+5. **Apply to Map**: Select a point layer in QGIS and click **OK** to apply the selected icon
 
-## Data source
+### Interface Features
+- **Icon Grid**: Organized display of icons with primary tag labels
+- **Metadata Panel**: Detailed information about selected icons
+- **Search and Filter**: Find specific icon categories quickly
+- **Preview**: See how icons will look on your map
 
-Icons and metadata come from the Boston Workshop Icons collection on Zenodo:
+### Data Management
+- **Automatic Updates**: Plugin checks for new data on startup
+- **Local Caching**: Icons and metadata are cached locally for fast access
+- **Manual Refresh**: Clear cache and re-download data if needed
 
-- **DOI**: [10.5281/zenodo.20126394](https://doi.org/10.5281/zenodo.20126394)
-- **Record**: [zenodo.org/records/20126394](https://zenodo.org/records/20126394)
-- **License**: Creative Commons Attribution 4.0 International (dataset)
+## Data Source
 
+All icons and metadata are sourced from the **Boston Workshop Icons** project, available on Zenodo:
+- **DOI**: [10.5281/zenodo.16882205](https://doi.org/10.5281/zenodo.16882205)
+- **Source**: Created as part of "Mapping Boston through Place" workshop at the Leventhal Map and Education Center
+- **License**: Creative Commons Attribution 4.0 International
+
+## Configuration
+
+The plugin can be configured through the `config.py` file:
+- **Zenodo URLs**: Links to icon and metadata files
+- **Display Settings**: Icon size, grid layout, label styling
+- **Cache Directories**: Local storage locations
 
 ## Troubleshooting
 
