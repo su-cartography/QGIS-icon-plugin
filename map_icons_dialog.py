@@ -140,7 +140,9 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         # Add a search box above the icon grid for filtering by tags
         
         self.searchLineEdit = QtWidgets.QLineEdit(self)
-        self.searchLineEdit.setPlaceholderText("Search icons by primary / secondary tags...")
+        self.searchLineEdit.setPlaceholderText(
+            "Search icons by tags, geography, or designer..."
+        )
         self.searchLineEdit.textChanged.connect(self.on_search_text_changed)
         # Insert at top of the main layout, above the splitter
         if hasattr(self, 'mainLayout'):
@@ -776,11 +778,17 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         # Record entry for search/filtering
         primary_tag = ""
         secondary_tags = ""
+        designer = ""
+        icon_geography = ""
         if icon_file in self.icon_metadata:
             md = self.icon_metadata[icon_file]
             primary_tag = md.get('primary_tag', '') or ''
             secondary_tags = md.get('secondary_tags', '') or ''
-        search_text = f"{primary_tag} {secondary_tags}".strip().lower()
+            designer = md.get('designer', '') or ''
+            icon_geography = md.get('icon_geography', '') or ''
+        search_text = " ".join(
+            (primary_tag, secondary_tags, icon_geography, designer)
+        ).strip().lower()
         self.icon_entries.append({
             'button': btn,
             'container': container,
@@ -793,7 +801,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
     def on_search_text_changed(self, text):
         """
         Filter visible icons based on search text.
-        Matches against primary and secondary tags.
+        Matches against primary/secondary tags, icon geography, and designer.
         """
         # If icon entries haven't been created yet, nothing to filter
         if not hasattr(self, 'icon_entries') or not self.icon_entries:
