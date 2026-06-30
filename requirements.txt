@@ -1,5 +1,7 @@
 # Python dependencies for Map Icons QGIS Plugin
-
-# HTTP requests for downloading from Zenodo
-requests>=2.25.0
-
+#
+<<<<<<< HEAD
+# Downloads use Python's built-in urllib — no extra packages required.
+=======
+# No third-party packages are required.
+>>>>>>> 2b9b92c79414b16c7b377c2cffeafc4be165e92d
