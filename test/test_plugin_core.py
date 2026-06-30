@@ -192,7 +192,6 @@ class TestDataManager(unittest.TestCase):
 
         self.assertTrue(dm._refresh_cache_if_new_release())
         self.assertFalse((dm.cache_dir / "map-icon-png" / "00e8059e.png").exists())
-<<<<<<< HEAD
 
     @patch("map_icons.data_manager.get_zenodo_assets")
     def test_metadata_exists_true_when_file_present(self, mock_get_assets):
@@ -204,15 +203,7 @@ class TestDataManager(unittest.TestCase):
         p = dm.get_metadata_file()
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("unique-ID,designer\n", encoding="utf-8")
-=======
-    def test_metadata_exists_true_when_file_present(self):
-        dm = DataManager(str(self.plugin_dir))
-        p = dm.get_metadata_file()
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_bytes(b"dummy")
->>>>>>> 2b9b92c79414b16c7b377c2cffeafc4be165e92d
         self.assertTrue(dm.metadata_exists())
-
     def test_check_dependencies_structure(self):
         dm = DataManager(str(self.plugin_dir))
         deps = dm.check_dependencies()

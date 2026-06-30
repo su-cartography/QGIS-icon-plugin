@@ -28,13 +28,9 @@ from .config import (
 )
 
 logger = logging.getLogger(__name__)
-<<<<<<< HEAD
 
-=======
->>>>>>> 2b9b92c79414b16c7b377c2cffeafc4be165e92d
 _USER_AGENT = "Map-Icons-QGIS-Plugin"
 _zenodo_assets = None
-
 
 def _zip_basename(url):
     return urlparse(url).path.rsplit("/", 1)[-1]
@@ -371,20 +367,12 @@ class DataManager:
         }
 
     def check_dependencies(self):
-<<<<<<< HEAD
-        """Report whether stdlib urllib and zipfile are available."""
-=======
         """Report whether stdlib modules used by the plugin are available."""
->>>>>>> 2b9b92c79414b16c7b377c2cffeafc4be165e92d
         return {
             "urllib": True,
             "zipfile": True,
         }
 
     def get_installation_instructions(self):
-<<<<<<< HEAD
-        """Return pip install hints for any missing dependencies."""
-=======
         """Return pip install hints for any missing optional dependencies."""
->>>>>>> 2b9b92c79414b16c7b377c2cffeafc4be165e92d
         return "All dependencies are available!"
