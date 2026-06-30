@@ -1,28 +1,53 @@
 # -*- coding: utf-8 -*-
 """
 Configuration file for Map Icons QGIS Plugin
-
 This file contains configuration settings for the plugin, including Zenodo URLs
 for downloading icons and metadata files.
 """
 
-# Zenodo DOI and URLs (v4)
-# https://zenodo.org/records/20126394
-ZENODO_DOI = "10.5281/zenodo.20126394"
-ZENODO_BASE_URL = "https://zenodo.org/record/20126394/files"
+# Zenodo concept DOI (always resolves to the latest published version)
+# https://doi.org/10.5281/zenodo.16882204
+ZENODO_CONCEPT_DOI = "10.5281/zenodo.16882204"
+ZENODO_CONCEPT_RECID = 16882204
+ZENODO_API_LATEST_URL = (
+    f"https://zenodo.org/api/records/{ZENODO_CONCEPT_RECID}"
+)
 
-# File URLs on Zenodo (filenames must match the record exactly)
-ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-PNG.zip"
-SVG_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-SVG.zip"
-# Metadata CSV from Zenodo v4 (read with Python's built-in csv module)
-METADATA_FILE_URL = f"{ZENODO_BASE_URL}/sample-icon-set-metadata.csv"
-# Backward compatibility for imports/tests that still reference METADATA_EXCEL_URL
-METADATA_EXCEL_URL = METADATA_FILE_URL
+# Backward-compatible alias used in docs and citations
+ZENODO_DOI = ZENODO_CONCEPT_DOI
+
+# Expected asset filenames on Zenodo (v5 naming convention)
+ZENODO_PNG_ZIP_NAME = "map-icon-png.zip"
+ZENODO_SVG_ZIP_NAME = "map-icon-svg.zip"
+ZENODO_METADATA_CSV_NAME = "map-icon-metadata.csv"
+
+# Folder names inside downloaded zips
+PNG_FOLDER = "map-icon-png"
+SVG_FOLDER = "map-icon-svg"
+
+# Column headers in map-icon-metadata.csv (Zenodo v5+)
+METADATA_CSV_HEADERS = (
+    "unique-ID",
+    "designer",
+    "metadata-source",
+    "uploader",
+    "primary-tags",
+    "secondary-tags",
+    "when-created",
+    "when-uploaded",
+    "where-created",
+    "icon-geography",
+    "icon-description",
+    "icon-context",
+    "creation-context",
+    "notes",
+)
 
 # Local cache directories
 CACHE_DIR = "cache"
 ICONS_CACHE_DIR = "cache/icons"
 METADATA_CACHE_DIR = "cache/metadata"
+ZENODO_RECORD_ID_FILE = "cache/zenodo_record_id.txt"
 
 # Plugin settings
 MAX_ICONS_PER_ROW = 5
@@ -54,16 +79,19 @@ QPushButton {
     border-radius: 12px;
     padding: 8px;
 }
+
 QPushButton:hover {
     background-color: #f8f9fa;
     border: 2px solid #3498db;
     transform: scale(1.05);
 }
+
 QPushButton:checked {
     background-color: #e3f2fd;
     border: 3px solid #2196f3;
     border-radius: 12px;
 }
+
 QPushButton:pressed {
     background-color: #bbdefb;
     border: 3px solid #1976d2;
