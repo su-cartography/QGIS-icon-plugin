@@ -165,17 +165,20 @@ class TestDataManager(unittest.TestCase):
     def test_check_dependencies_structure(self):
         dm = DataManager(str(self.plugin_dir))
         deps = dm.check_dependencies()
-        self.assertIn("requests", deps)
+        self.assertIn("urllib", deps)
         self.assertIn("zipfile", deps)
+        self.assertTrue(deps["urllib"])
         self.assertTrue(deps["zipfile"])
 
-    @patch("map_icons.data_manager.requests")
-    def test_download_file_success(self, mock_requests_module):
+    @patch("map_icons.data_manager.urlopen")
+    def test_download_file_success(self, mock_urlopen):
+        from io import BytesIO
+
         dm = DataManager(str(self.plugin_dir))
-        mock_resp = MagicMock()
-        mock_resp.iter_content.return_value = [b"data"]
-        mock_resp.raise_for_status = MagicMock()
-        mock_requests_module.get.return_value = mock_resp
+        mock_response = MagicMock()
+        mock_response.__enter__ = MagicMock(return_value=BytesIO(b"data"))
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
 
         out = self.plugin_dir / "cache" / "icons" / "downloaded.bin"
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -185,10 +188,14 @@ class TestDataManager(unittest.TestCase):
         self.assertTrue(out.exists())
         self.assertEqual(out.read_bytes(), b"data")
 
-    @patch("map_icons.data_manager.requests", None)
-    @patch("map_icons.data_manager.REQUESTS_AVAILABLE", False)
-    def test_download_file_no_requests(self):
+    @patch("map_icons.data_manager.urlopen")
+    def test_download_file_http_error(self, mock_urlopen):
+        from urllib.error import HTTPError
+
         dm = DataManager(str(self.plugin_dir))
+        mock_urlopen.side_effect = HTTPError(
+            "https://example.com/x", 404, "Not Found", hdrs=None, fp=None
+        )
         out = self.plugin_dir / "cache" / "icons" / "x.bin"
         out.parent.mkdir(parents=True, exist_ok=True)
         ok = dm.download_file("https://example.com/x", out, "x")
