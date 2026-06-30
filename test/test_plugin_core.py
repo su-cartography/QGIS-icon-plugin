@@ -189,18 +189,51 @@ class TestDataManager(unittest.TestCase):
 
         self.assertTrue(dm._refresh_cache_if_new_release())
         self.assertFalse((dm.cache_dir / "map-icon-png" / "00e8059e.png").exists())
-
-    @patch("map_icons.data_manager.requests")
-    def test_download_file_success(self, mock_requests_module):
+    def test_metadata_exists_true_when_file_present(self):
         dm = DataManager(str(self.plugin_dir))
-        mock_resp = MagicMock()
-        mock_resp.iter_content.return_value = [b"data"]
-        mock_resp.raise_for_status = MagicMock()
-        mock_requests_module.get.return_value = mock_resp
+        p = dm.get_metadata_file()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"dummy")
+        self.assertTrue(dm.metadata_exists())
+
+    def test_check_dependencies_structure(self):
+        dm = DataManager(str(self.plugin_dir))
+        deps = dm.check_dependencies()
+        self.assertIn("urllib", deps)
+        self.assertIn("zipfile", deps)
+        self.assertTrue(deps["urllib"])
+        self.assertTrue(deps["zipfile"])
+
+    @patch("map_icons.data_manager.urlopen")
+    def test_download_file_success(self, mock_urlopen):
+        from io import BytesIO
+
+        dm = DataManager(str(self.plugin_dir))
+        mock_response = MagicMock()
+        mock_response.__enter__ = MagicMock(return_value=BytesIO(b"data"))
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
 
         out = self.plugin_dir / "cache" / "icons" / "downloaded.bin"
         out.parent.mkdir(parents=True, exist_ok=True)
-        self.assertTrue(dm.download_file("https://example.com/file", out, "test"))
+        ok = dm.download_file("https://example.com/file", out, "test")
+
+        self.assertTrue(ok)
+        self.assertTrue(out.exists())
+        self.assertEqual(out.read_bytes(), b"data")
+
+    @patch("map_icons.data_manager.urlopen")
+    def test_download_file_http_error(self, mock_urlopen):
+        from urllib.error import HTTPError
+
+        dm = DataManager(str(self.plugin_dir))
+        mock_urlopen.side_effect = HTTPError(
+            "https://example.com/x", 404, "Not Found", hdrs=None, fp=None
+        )
+        out = self.plugin_dir / "cache" / "icons" / "x.bin"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        ok = dm.download_file("https://example.com/x", out, "x")
+        self.assertFalse(ok)
 
 
 if __name__ == "__main__":

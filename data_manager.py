@@ -10,15 +10,9 @@ import logging
 import shutil
 import zipfile
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-
-try:
-    import requests
-    REQUESTS_AVAILABLE = True
-except ImportError:
-    requests = None
-    REQUESTS_AVAILABLE = False
-    logging.warning("requests library not available. Zenodo downloads will not work.")
+from urllib.request import Request, urlopen
 
 from .config import (
     CACHE_DIR,
@@ -34,7 +28,7 @@ from .config import (
 )
 
 logger = logging.getLogger(__name__)
-
+_USER_AGENT = "Map-Icons-QGIS-Plugin"
 _zenodo_assets = None
 
 
@@ -112,22 +106,18 @@ def get_zenodo_assets(force_refresh=False):
 
 
 def _download(url, dest, label):
-    """Download url to dest. Returns True on success."""
-    if not REQUESTS_AVAILABLE:
-        logger.error("Cannot download %s: install requests (pip install requests)", label)
-        return False
+    """Download url to dest using urllib.request. Returns True on success."""
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         logger.info("Downloading %s from %s", label, url)
-        response = requests.get(url, stream=True, timeout=30)
-        response.raise_for_status()
-        with open(dest, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+        request = Request(url, headers={"User-Agent": _USER_AGENT})
+        with urlopen(request, timeout=30) as response:
+            with open(dest, "wb") as f:
+                shutil.copyfileobj(response, f)
         logger.info("Downloaded %s to %s", label, dest)
         return True
-    except (requests.RequestException, OSError) as err:
+    except (HTTPError, URLError, OSError, TimeoutError) as err:
         logger.error("Failed to download %s: %s", label, err)
         return False
 
@@ -378,16 +368,12 @@ class DataManager:
         }
 
     def check_dependencies(self):
-        """Report whether requests and zipfile are available."""
+        """Report whether stdlib modules used by the plugin are available."""
         return {
-            "requests": REQUESTS_AVAILABLE,
+            "urllib": True,
             "zipfile": True,
         }
 
     def get_installation_instructions(self):
-        """Return pip install hints for any missing dependencies."""
-        lines = []
-        deps = self.check_dependencies()
-        if not deps["requests"]:
-            lines.append("Install requests: pip install requests")
-        return "\n".join(lines) if lines else "All dependencies are available!"
+        """Return pip install hints for any missing optional dependencies."""
+        return "All dependencies are available!"
