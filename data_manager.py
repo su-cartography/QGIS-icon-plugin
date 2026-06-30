@@ -26,6 +26,8 @@ from .config import (
 
 logger = logging.getLogger(__name__)
 
+_USER_AGENT = "Map-Icons-QGIS-Plugin"
+
 
 def _zip_basename(url):
     return urlparse(url).path.rsplit("/", 1)[-1]
