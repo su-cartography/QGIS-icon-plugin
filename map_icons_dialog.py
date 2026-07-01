@@ -55,26 +55,10 @@ from .config import (
     LABEL_MIN_HEIGHT,
     LABEL_STYLE,
     ICON_BUTTON_STYLE,
-    CONTAINER_STYLE
+    CONTAINER_STYLE,
+    METADATA_CSV_HEADERS,
 )
 from .data_manager import DataManager
-
-# Exact column headers in sample-icon-set-metadata.csv (Zenodo v4)
-METADATA_CSV_HEADERS = (
-    "unique-ID",
-    "designer",
-    "metadata",
-    "uploader",
-    "primary-tags",
-    "secondary-tags",
-    "when-created",
-    "when-uploaded",
-    "where-created",
-    "icon-geography",
-    "icon-description",
-    "icon-context",
-    "creation-context",
-)
 
 # Metadata panel value labels that may wrap to multiple lines
 
@@ -402,7 +386,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             metadata = {
                 "filename": filename,
                 "designer": cell("designer"),
-                "metadata": cell("metadata"),
+                "metadata_source": cell("metadata-source"),
                 "uploader": cell("uploader"),
                 "primary_tag": cell("primary-tags"),
                 "secondary_tags": cell("secondary-tags"),
@@ -413,6 +397,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 "icon_description": cell("icon-description"),
                 "icon_context": cell("icon-context"),
                 "creation_context": cell("creation-context"),
+                "notes": cell("notes"),
             }
             metadata_list.append(metadata)
             if filename:
@@ -446,7 +431,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if metadata_file.suffix.lower() != ".csv":
             self.show_error_message(
-                "Metadata must be a CSV file (sample-icon-set-metadata.csv from Zenodo)."
+                "Metadata must be a CSV file downloaded from Zenodo (map-icon-metadata.csv)."
             )
             return
 
@@ -501,13 +486,16 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.show_error_message("Icons directory not found. Please check data download.")
             return
         
-        # Check if icons are in a subdirectory (common after zip extraction)
-        # IMPORTANT: Check various possible extraction locations
-        possible_icon_dirs = [
-            self.data_manager.cache_dir / "sample-icon-set-PNG",
-            icons_dir / "sample-icon-set-PNG",
+        from .config import PNG_FOLDER
+
+        possible_icon_dirs = []
+        png_dir = self.data_manager.get_png_icons_directory()
+        if png_dir is not None:
+            possible_icon_dirs.append(png_dir)
+        possible_icon_dirs.extend([
+            self.data_manager.cache_dir / PNG_FOLDER,
             icons_dir,
-        ]
+        ])
         
         actual_icons_dir = None
         for possible_dir in possible_icon_dirs:
@@ -634,11 +622,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 if legacy_disk and id_meta:
                     hint = (
                         "\n\nYour cache still has OLD numbered icons (1.png, 2.png, …) from a "
-                        "previous Zenodo version, while metadata is the v4 CSV (unique-ID filenames). "
-                        "Delete the plugin’s cache folder (or at least cache/sample-icon-set), then "
-                        "open the plugin again so it can download sample-icon-set-PNG.zip. "
-                        "Alternatively, copy all PNGs into cache/sample-icon-set-PNG/ using the "
-                        "same names as the unique-ID column plus “.png”."
+                        "previous Zenodo version. Delete the plugin’s cache folder, then open "
+                        "the plugin again so it can download map-icon-png.zip from Zenodo."
                     )
                 self.show_error_message(
                     "No icons matched metadata filenames.\n\n"
@@ -670,7 +655,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             # Get metadata for this icon
             if icon_file in self.icon_metadata:
                 metadata = self.icon_metadata[icon_file]
-                primary_tag = metadata.get('primary_tag', '')
+                primary_tag = metadata.get("primary_tag", "")
                 
                 # Use primary_tag as the display name for the icon label
                 display_name = primary_tag if primary_tag and primary_tag.strip() else None
@@ -782,12 +767,12 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         icon_geography = ""
         if icon_file in self.icon_metadata:
             md = self.icon_metadata[icon_file]
-            primary_tag = md.get('primary_tag', '') or ''
-            secondary_tags = md.get('secondary_tags', '') or ''
-            designer = md.get('designer', '') or ''
-            icon_geography = md.get('icon_geography', '') or ''
+            primary_tag = md.get("primary_tag", "") or ""
+            secondary_tags = md.get("secondary_tags", "") or ""
+            designer = md.get("designer", "") or ""
+            icon_geography = md.get("icon_geography", "") or ""
         search_text = " ".join(
-            (primary_tag, secondary_tags, icon_geography, designer)
+            (primary_tag, secondary_tags, designer, icon_geography)
         ).strip().lower()
         self.icon_entries.append({
             'button': btn,
@@ -835,16 +820,12 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 entry_container.setVisible(visible)
 
     def _svg_search_directories(self):
-        """Directories to search for <unique-id>.svg (Zenodo sample-icon-set-SVG / PNG folders)."""
+        """Directories to search for <unique-id>.svg in the cache."""
         dirs = []
         if getattr(self, 'actual_icons_dir', None):
             dirs.append(Path(self.actual_icons_dir))
         if self.data_manager:
-            cache = self.data_manager.cache_dir
-            for sub in ("sample-icon-set-PNG", "sample-icon-set-SVG"):
-                d = cache / sub
-                if d.is_dir():
-                    dirs.append(d)
+            dirs.extend(self.data_manager.get_svg_search_directories())
         seen = set()
         unique = []
         for d in dirs:
@@ -1033,7 +1014,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self._set_label("iconDescriptionValue", meta.get("icon_description"))
             self._set_label("iconContextValue", meta.get("icon_context"))
             self._set_label("creationContextValue", meta.get("creation_context"))
-            self._set_label("notesValue", meta.get("metadata"))
+            notes = (meta.get("notes") or "").strip()
+            if not notes:
+                notes = (meta.get("metadata_source") or "").strip()
+            self._set_label("notesValue", notes or None)
         else:
             self.codeValue.setText("No category")
             self.createdByValue.setText(filename)

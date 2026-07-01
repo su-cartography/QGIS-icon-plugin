@@ -1,24 +1,44 @@
 # -*- coding: utf-8 -*-
 """
 Configuration file for Map Icons QGIS Plugin
-
 This file contains configuration settings for the plugin, including Zenodo URLs
 for downloading icons and metadata files.
 """
 
-# Zenodo DOI and URLs (v4)
-# https://zenodo.org/records/20126394
-ZENODO_DOI = "10.5281/zenodo.20126394"
-ZENODO_BASE_URL = "https://zenodo.org/record/20126394/files"
+# Zenodo DOI and URLs (v5)
+# https://zenodo.org/records/20397958
+ZENODO_DOI = "10.5281/zenodo.20397958"
+ZENODO_BASE_URL = "https://zenodo.org/records/20397958/files"
 
 # File URLs on Zenodo (filenames must match the record exactly)
-ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-PNG.zip"
-SVG_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-SVG.zip"
-# Metadata CSV from Zenodo v4 (read with Python's built-in csv module)
-METADATA_FILE_URL = f"{ZENODO_BASE_URL}/sample-icon-set-metadata.csv"
+ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/map-icon-png.zip"
+SVG_ZIP_URL = f"{ZENODO_BASE_URL}/map-icon-svg.zip"
+METADATA_FILE_URL = f"{ZENODO_BASE_URL}/map-icon-metadata.csv"
+
 # Backward compatibility for imports/tests that still reference METADATA_EXCEL_URL
 METADATA_EXCEL_URL = METADATA_FILE_URL
 
+# Folder names inside downloaded zips
+PNG_FOLDER = "map-icon-png"
+SVG_FOLDER = "map-icon-svg"
+
+# Column headers in map-icon-metadata.csv (Zenodo v5+)
+METADATA_CSV_HEADERS = (
+    "unique-ID",
+    "designer",
+    "metadata-source",
+    "uploader",
+    "primary-tags",
+    "secondary-tags",
+    "when-created",
+    "when-uploaded",
+    "where-created",
+    "icon-geography",
+    "icon-description",
+    "icon-context",
+    "creation-context",
+    "notes",
+)
 # Local cache directories
 CACHE_DIR = "cache"
 ICONS_CACHE_DIR = "cache/icons"
@@ -54,16 +74,19 @@ QPushButton {
     border-radius: 12px;
     padding: 8px;
 }
+
 QPushButton:hover {
     background-color: #f8f9fa;
     border: 2px solid #3498db;
     transform: scale(1.05);
 }
+
 QPushButton:checked {
     background-color: #e3f2fd;
     border: 3px solid #2196f3;
     border-radius: 12px;
 }
+
 QPushButton:pressed {
     background-color: #bbdefb;
     border: 3px solid #1976d2;

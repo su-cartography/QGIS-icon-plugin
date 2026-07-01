@@ -20,12 +20,12 @@ from .config import (
     CACHE_DIR,
     ICONS_CACHE_DIR,
     METADATA_CACHE_DIR,
+    PNG_FOLDER,
+    SVG_FOLDER,
 )
 
 logger = logging.getLogger(__name__)
 
-PNG_FOLDER = "sample-icon-set-PNG"
-SVG_FOLDER = "sample-icon-set-SVG"
 _USER_AGENT = "Map-Icons-QGIS-Plugin"
 
 
@@ -130,18 +130,18 @@ class DataManager:
         return _extract_zip(zip_path, self.cache_dir, label)
 
     def download_and_extract_icons(self):
-        """Download and extract sample-icon-set-PNG.zip from Zenodo."""
+        """Download and extract map-icon-png.zip from Zenodo."""
         return self._download_and_extract(ICONS_ZIP_URL, "icons")
 
     def download_and_extract_svgs(self):
-        """Download SVG zip, extract it, and copy SVGs beside PNGs in sample-icon-set-PNG/."""
+        """Download SVG zip, extract it, and copy SVGs beside PNGs in map-icon-png/."""
         if not self._download_and_extract(SVG_ZIP_URL, "SVG icons"):
             return False
         _copy_svgs_into_png_folder(self.cache_dir, self.cache_dir / PNG_FOLDER)
         return True
 
     def download_metadata(self):
-        """Download sample-icon-set-metadata.csv from Zenodo into the metadata cache."""
+        """Download map-icon-metadata.csv from Zenodo into the metadata cache."""
         path = self.metadata_cache_dir / _zip_basename(METADATA_FILE_URL)
         return _download(METADATA_FILE_URL, path, "metadata file")
 
@@ -153,18 +153,30 @@ class DataManager:
         """Return the path to the cached metadata CSV file."""
         return self.metadata_cache_dir / _zip_basename(METADATA_FILE_URL)
 
-    def icons_exist(self):
-        """True if hash-named PNGs exist under cache/sample-icon-set-PNG/."""
+    def get_png_icons_directory(self):
+        """Return the cache folder containing PNG icons, or None if not found."""
         png_dir = self.cache_dir / PNG_FOLDER
-        return png_dir.is_dir() and any(png_dir.glob("*.png"))
+        if png_dir.is_dir() and any(png_dir.glob("*.png")):
+            return png_dir
+        return None
+
+    def get_svg_search_directories(self):
+        """Return cache folders that may contain SVG files."""
+        dirs = []
+        for name in (SVG_FOLDER, PNG_FOLDER):
+            folder = self.cache_dir / name
+            if folder.is_dir():
+                dirs.append(folder)
+        return dirs
+
+    def icons_exist(self):
+        """True if hash-named PNGs exist under cache/map-icon-png/."""
+        return self.get_png_icons_directory() is not None
 
     def svgs_exist(self):
-        """True if SVG files exist in sample-icon-set-SVG or beside PNGs."""
-        for folder in (SVG_FOLDER, PNG_FOLDER):
-            svg_dir = self.cache_dir / folder
-            if not svg_dir.is_dir():
-                continue
-            if any(p for p in svg_dir.glob("*.svg") if not p.name.startswith("._")):
+        """True if SVG files exist in map-icon-svg or beside PNGs."""
+        for folder in self.get_svg_search_directories():
+            if any(p for p in folder.glob("*.svg") if not p.name.startswith("._")):
                 return True
         return False
 
@@ -193,8 +205,8 @@ class DataManager:
 
     def get_cache_info(self):
         """Return icon count, metadata presence, and cache path for debugging."""
-        png_dir = self.cache_dir / PNG_FOLDER
-        icons = list(png_dir.glob("*.png")) if png_dir.is_dir() else []
+        png_dir = self.get_png_icons_directory()
+        icons = list(png_dir.glob("*.png")) if png_dir is not None else []
         return {
             "cache_dir": str(self.cache_dir),
             "icons_count": len(icons),

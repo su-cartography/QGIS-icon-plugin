@@ -42,7 +42,6 @@ def _bootstrap_map_icons_package():
     config_mod = importlib.util.module_from_spec(spec_c)
     sys.modules["map_icons.config"] = config_mod
     spec_c.loader.exec_module(config_mod)
-    # Make submodule available as attribute so unittest.mock.patch can resolve "map_icons.config"
     pkg.config = config_mod
 
     spec_dm = importlib.util.spec_from_file_location(
@@ -51,7 +50,6 @@ def _bootstrap_map_icons_package():
     dm_mod = importlib.util.module_from_spec(spec_dm)
     sys.modules["map_icons.data_manager"] = dm_mod
     spec_dm.loader.exec_module(dm_mod)
-    # Make submodule available as attribute so unittest.mock.patch can resolve "map_icons.data_manager"
     pkg.data_manager = dm_mod
 
 
@@ -70,7 +68,7 @@ class TestConfig(unittest.TestCase):
 
     def test_zenodo_urls_https_and_record(self):
         self.assertTrue(config.ZENODO_BASE_URL.startswith("https://"))
-        self.assertIn("20126394", config.ZENODO_BASE_URL)
+        self.assertIn("20397958", config.ZENODO_BASE_URL)
 
     def test_asset_urls_under_base(self):
         self.assertTrue(config.ICONS_ZIP_URL.startswith(config.ZENODO_BASE_URL))
@@ -79,9 +77,19 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.METADATA_EXCEL_URL, config.METADATA_FILE_URL)
 
     def test_zip_and_metadata_filenames(self):
-        self.assertIn("sample-icon-set-PNG.zip", config.ICONS_ZIP_URL)
-        self.assertIn("sample-icon-set-SVG.zip", config.SVG_ZIP_URL)
-        self.assertIn("sample-icon-set-metadata.csv", config.METADATA_FILE_URL)
+        self.assertIn("map-icon-png.zip", config.ICONS_ZIP_URL)
+        self.assertIn("map-icon-svg.zip", config.SVG_ZIP_URL)
+        self.assertIn("map-icon-metadata.csv", config.METADATA_FILE_URL)
+
+    def test_v5_folder_names(self):
+        self.assertEqual(config.PNG_FOLDER, "map-icon-png")
+        self.assertEqual(config.SVG_FOLDER, "map-icon-svg")
+
+    def test_metadata_csv_headers_v5(self):
+        self.assertIn("unique-ID", config.METADATA_CSV_HEADERS)
+        self.assertIn("metadata-source", config.METADATA_CSV_HEADERS)
+        self.assertIn("notes", config.METADATA_CSV_HEADERS)
+        self.assertNotIn("metadata", config.METADATA_CSV_HEADERS)
 
     def test_ui_constants_sane(self):
         self.assertGreater(config.MAX_ICONS_PER_ROW, 0)
@@ -108,7 +116,7 @@ class TestDataManager(unittest.TestCase):
     def test_get_metadata_file_name_from_url(self):
         dm = DataManager(str(self.plugin_dir))
         p = dm.get_metadata_file()
-        self.assertTrue(str(p).endswith("sample-icon-set-metadata.csv"))
+        self.assertTrue(str(p).endswith("map-icon-metadata.csv"))
         self.assertEqual(p.parent, dm.metadata_cache_dir)
 
     def test_icons_exist_false_when_empty(self):
@@ -116,16 +124,16 @@ class TestDataManager(unittest.TestCase):
         self.assertFalse(dm.icons_exist())
 
     def test_icons_exist_false_with_only_legacy_sample_icon_set(self):
-        """Old cache/sample-icon-set/1.png does not count; only sample-icon-set-PNG/."""
+        """Old cache/sample-icon-set/1.png does not count; only map-icon-png/."""
         dm = DataManager(str(self.plugin_dir))
         legacy = dm.cache_dir / "sample-icon-set"
         legacy.mkdir(parents=True)
         (legacy / "1.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 20)
         self.assertFalse(dm.icons_exist())
 
-    def test_icons_exist_true_with_png_in_sample_icon_set_png(self):
+    def test_icons_exist_true_with_png_in_map_icon_png(self):
         dm = DataManager(str(self.plugin_dir))
-        png_dir = dm.cache_dir / "sample-icon-set-PNG"
+        png_dir = dm.cache_dir / "map-icon-png"
         png_dir.mkdir(parents=True)
         (png_dir / "00e8059e.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 20)
         self.assertTrue(dm.icons_exist())
@@ -134,9 +142,9 @@ class TestDataManager(unittest.TestCase):
         dm = DataManager(str(self.plugin_dir))
         self.assertFalse(dm.svgs_exist())
 
-    def test_svgs_exist_true_with_svg_in_sample_icon_set_svg(self):
+    def test_svgs_exist_true_with_svg_in_map_icon_svg(self):
         dm = DataManager(str(self.plugin_dir))
-        svg_dir = dm.cache_dir / "sample-icon-set-SVG"
+        svg_dir = dm.cache_dir / "map-icon-svg"
         svg_dir.mkdir(parents=True)
         (svg_dir / "00e8059e.svg").write_text(
             "<svg xmlns='http://www.w3.org/2000/svg'/>", encoding="utf-8"
