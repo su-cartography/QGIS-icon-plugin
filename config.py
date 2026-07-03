@@ -43,6 +43,27 @@ METADATA_CSV_HEADERS = (
     "notes",
 )
 
+# Folder names inside downloaded zips
+PNG_FOLDER = "map-icon-png"
+SVG_FOLDER = "map-icon-svg"
+
+# Column headers in map-icon-metadata.csv (Zenodo v5+)
+METADATA_CSV_HEADERS = (
+    "unique-ID",
+    "designer",
+    "metadata-source",
+    "uploader",
+    "primary-tags",
+    "secondary-tags",
+    "when-created",
+    "when-uploaded",
+    "where-created",
+    "icon-geography",
+    "icon-description",
+    "icon-context",
+    "creation-context",
+    "notes",
+)
 # Local cache directories
 CACHE_DIR = "cache"
 ICONS_CACHE_DIR = "cache/icons"

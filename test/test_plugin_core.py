@@ -158,7 +158,9 @@ class TestDataManager(unittest.TestCase):
 
     def test_get_metadata_file_uses_v5_name(self):
         dm = DataManager(str(self.plugin_dir))
-        self.assertTrue(str(dm.get_metadata_file()).endswith("map-icon-metadata.csv"))
+        p = dm.get_metadata_file()
+        self.assertTrue(str(p).endswith("map-icon-metadata.csv"))
+        self.assertEqual(p.parent, dm.metadata_cache_dir)
 
     def test_icons_exist_true_with_png_in_map_icon_png(self):
         dm = DataManager(str(self.plugin_dir))
@@ -168,6 +170,7 @@ class TestDataManager(unittest.TestCase):
         self.assertTrue(dm.icons_exist())
 
     def test_icons_exist_false_with_only_legacy_sample_icon_set(self):
+        """Old cache/sample-icon-set/1.png does not count; only map-icon-png/."""
         dm = DataManager(str(self.plugin_dir))
         legacy = dm.cache_dir / "sample-icon-set"
         legacy.mkdir(parents=True)
@@ -199,6 +202,26 @@ class TestDataManager(unittest.TestCase):
             "record_id": "20397958",
             "metadata_filename": "map-icon-metadata.csv",
         }
+        self.assertTrue(dm.icons_exist())
+
+    def test_svgs_exist_false_when_empty(self):
+        dm = DataManager(str(self.plugin_dir))
+        self.assertFalse(dm.svgs_exist())
+
+    def test_svgs_exist_true_with_svg_in_map_icon_svg(self):
+        dm = DataManager(str(self.plugin_dir))
+        svg_dir = dm.cache_dir / "map-icon-svg"
+        svg_dir.mkdir(parents=True)
+        (svg_dir / "00e8059e.svg").write_text(
+            "<svg xmlns='http://www.w3.org/2000/svg'/>", encoding="utf-8"
+        )
+        self.assertTrue(dm.svgs_exist())
+
+    def test_metadata_exists_false_without_file(self):
+        dm = DataManager(str(self.plugin_dir))
+        self.assertFalse(dm.metadata_exists())
+
+    def test_metadata_exists_true_when_file_present(self):
         dm = DataManager(str(self.plugin_dir))
         p = dm.get_metadata_file()
         p.parent.mkdir(parents=True, exist_ok=True)
