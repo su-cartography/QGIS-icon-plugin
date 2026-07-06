@@ -623,7 +623,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                     hint = (
                         "\n\nYour cache still has OLD numbered icons (1.png, 2.png, …) from a "
                         "previous Zenodo version. Delete the plugin’s cache folder, then open "
-                        "the plugin again so it can download map-icon-png.zip from Zenodo."
+                        "the plugin again so it can download the latest icons from Zenodo."
                     )
                 self.show_error_message(
                     "No icons matched metadata filenames.\n\n"
