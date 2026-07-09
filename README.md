@@ -40,6 +40,15 @@ A QGIS plugin and place-based map icon library for the city of Boston initially 
 1. Clone or download this repository
 2. Copy the plugin folder into your QGIS plugins directory:
 
+| OS | Path |
+|----|------|
+| Windows | `C:\Users\<username>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\` |
+| macOS | `~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/` |
+| Linux | `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/` |
+
+3. Restart QGIS
+4. Enable the plugin under **Plugins → Manage and Install Plugins**
+
 No additional Python packages are required. The plugin uses the Python standard
 library (`urllib.request`, `csv`, `zipfile`) and QGIS's bundled PyQt.
 
