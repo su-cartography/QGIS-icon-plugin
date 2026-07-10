@@ -273,15 +273,14 @@ QLabel {
         stop:0 #f3eeff, stop:1 #fff0f8);
     border: 1px solid #C77DFF;
     border-radius: 10px;
-    padding: 6px 10px;
-    min-height: 36px;
+    padding: 2px 4px;
+    min-height: 56px;
 }
 """
 
 ICON_BUTTON_STYLE = """
 QPushButton {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 #ffffff, stop:1 #f8f5ff);
+    background: #ffffff;
     border: 2px solid #d8b4fe;
     border-radius: 14px;
     padding: 8px;
