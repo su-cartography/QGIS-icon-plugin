@@ -65,6 +65,7 @@ from .config import (
     SEARCH_STYLE,
     SCROLL_AREA_STYLE,
     METADATA_PANEL_STYLE,
+    METADATA_CLOSE_BUTTON_STYLE,
     PREVIEW_LABEL_STYLE,
     METADATA_GROUP_STYLE,
     FORMAT_GROUP_STYLE,
@@ -207,6 +208,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Connect Cancel button to clear selection
         self.button_box.rejected.connect(self.on_cancel_clicked)
+        if hasattr(self, "metadataCloseButton"):
+            self.metadataCloseButton.clicked.connect(self.on_cancel_clicked)
         
         # Connect format radio buttons if they exist
         if hasattr(self, 'pngFormatRadio') and hasattr(self, 'svgFormatRadio'):
@@ -309,6 +312,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             )
         if hasattr(self, "metadataPanel"):
             self.metadataPanel.setStyleSheet(METADATA_PANEL_STYLE)
+        if hasattr(self, "metadataCloseButton"):
+            self.metadataCloseButton.setObjectName("metadataCloseButton")
+            self.metadataCloseButton.setStyleSheet(METADATA_CLOSE_BUTTON_STYLE)
+            self.metadataCloseButton.setCursor(Qt.PointingHandCursor)
         if hasattr(self, "iconPreviewLabel"):
             self.iconPreviewLabel.setStyleSheet(PREVIEW_LABEL_STYLE)
             self.iconPreviewLabel.setFixedHeight(METADATA_PREVIEW_HEIGHT)

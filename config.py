@@ -126,6 +126,26 @@ QWidget#metadataPanel {
 }
 """
 
+METADATA_CLOSE_BUTTON_STYLE = """
+QPushButton#metadataCloseButton {
+    color: #7209B7;
+    font-size: 18px;
+    font-weight: 700;
+    background-color: transparent;
+    border: none;
+    border-radius: 14px;
+    padding: 0;
+}
+QPushButton#metadataCloseButton:hover {
+    color: #ffffff;
+    background-color: #F72585;
+}
+QPushButton#metadataCloseButton:pressed {
+    color: #ffffff;
+    background-color: #560BAD;
+}
+"""
+
 PREVIEW_LABEL_STYLE = """
 QLabel#iconPreviewLabel {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
