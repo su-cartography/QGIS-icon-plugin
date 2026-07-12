@@ -53,6 +53,7 @@ from .config import (
     BUTTON_SIZE, 
     LABEL_MAX_WIDTH, 
     LABEL_MIN_HEIGHT,
+    ICON_CARD_MIN_WIDTH,
     LABEL_STYLE,
     ICON_BUTTON_STYLE,
     CONTAINER_STYLE,
@@ -154,6 +155,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.data_manager = None        # Data manager for Zenodo downloads
         self.actual_icons_dir = None    # Store where icons were actually found
         self.icon_entries = []          # Store per-icon data for search/filtering
+        self._icons_loaded = False
+        self._grid_columns = MAX_ICONS_PER_ROW
         
         # Branded header and search above the icon grid
         self.headerWidget = QtWidgets.QWidget(self)
@@ -298,7 +301,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
     def _apply_dialog_theme(self):
         """Apply colour palette and styles to the dialog."""
         self.setStyleSheet(DIALOG_STYLE)
-        self.setMinimumSize(880, 640)
+        self.setMinimumSize(920, 640)
 
         if os.path.isfile(self._plugin_icon_path):
             self.setWindowIcon(QtGui.QIcon(self._plugin_icon_path))
@@ -356,7 +359,95 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         if hasattr(self, "iconLayout"):
             self.iconLayout.setAlignment(Qt.AlignCenter | Qt.AlignTop)
             self.iconLayout.setSpacing(24)
-            self.iconLayout.setContentsMargins(16, 8, 16, 16)
+            self.iconLayout.setContentsMargins(16,8,16,16)
+        if hasattr(self, "splitter"):
+            self.splitter.splitterMoved.connect(
+                lambda *_args: self._schedule_icon_grid_relayout()
+            )
+        if hasattr(self, "scrollArea"):
+            viewport = self.scrollArea.viewport()
+            if viewport is not None:
+                viewport.installEventFilter(self)
+
+    def showEvent(self, event):
+        """Reflow icon grid once the dialog has a real width."""
+        super(mapIconsDialog, self).showEvent(event)
+        if self._icons_loaded:
+            self._schedule_icon_grid_relayout(force=True)
+
+    def _icon_grid_column_count(self):
+        """How many icon cards fit in the current scroll area width."""
+        if not hasattr(self, "scrollArea"):
+            return MAX_ICONS_PER_ROW
+        viewport = self.scrollArea.viewport()
+        if viewport is None or viewport.width() < ICON_CARD_MIN_WIDTH:
+            return getattr(self, "_grid_columns", MAX_ICONS_PER_ROW)
+
+        layout = self.iconLayout
+        margins = layout.contentsMargins()
+        spacing = layout.spacing() or 12
+        available = viewport.width() - margins.left() - margins.right()
+        if available < ICON_CARD_MIN_WIDTH:
+            return 1
+
+        columns = int((available + spacing) // (ICON_CARD_MIN_WIDTH + spacing))
+        return max(1, min(columns, MAX_ICONS_PER_ROW))
+
+    def _relayout_icon_grid(self, force=False):
+        """Reposition icon cards when the left pane grows or shrinks."""
+        if not self._icons_loaded or not self.icon_entries:
+            return
+
+        viewport = (
+            self.scrollArea.viewport() if hasattr(self, "scrollArea") else None
+        )
+        if viewport is not None and viewport.width() < ICON_CARD_MIN_WIDTH:
+            return
+
+        new_columns = self._icon_grid_column_count()
+        if not force and new_columns == self._grid_columns:
+            return
+
+        self._grid_columns = new_columns
+        layout = self.iconLayout
+        parent = (
+            self.scrollAreaWidgetContents
+            if hasattr(self, "scrollAreaWidgetContents")
+            else None
+        )
+
+        ordered = []
+        for entry in self.icon_entries:
+            container = entry.get("container")
+            if container is not None:
+                ordered.append((container, container.isVisible()))
+
+        for index in reversed(range(layout.count())):
+            item = layout.itemAt(index)
+            widget = item.widget() if item else None
+            if widget is not None:
+                layout.removeWidget(widget)
+
+        row = 0
+        col = 0
+        for container, visible in ordered:
+            if parent is not None:
+                container.setParent(parent)
+            if not visible:
+                container.hide()
+                continue
+            layout.addWidget(container, row, col, Qt.AlignCenter)
+            container.show()
+            col += 1
+            if col >= new_columns:
+                col = 0
+                row += 1
+
+        if parent is not None:
+            parent.updateGeometry()
+
+    def _schedule_icon_grid_relayout(self, force=False):
+        QTimer.singleShot(0, lambda: self._relayout_icon_grid(force=force))
 
     def _configure_metadata_form(self):
         """Top-align rows, span values full width, and keep row spacing even."""
@@ -409,13 +500,18 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.metadataLayout.setStretch(idx, 1)
 
     def eventFilter(self, obj, event):
-        """Recalculate wrapped label layout when the metadata panel is resized."""
-        if (
-            hasattr(self, "metadataScrollArea")
-            and obj is self.metadataScrollArea.viewport()
-            and event.type() == QEvent.Resize
-        ):
-            QTimer.singleShot(0, self._sync_metadata_layout)
+        """Recalculate layouts when scroll areas are resized."""
+        if event.type() == QEvent.Resize:
+            if (
+                hasattr(self, "metadataScrollArea")
+                and obj is self.metadataScrollArea.viewport()
+            ):
+                QTimer.singleShot(0, self._sync_metadata_layout)
+            elif (
+                hasattr(self, "scrollArea")
+                and obj is self.scrollArea.viewport()
+            ):
+                self._schedule_icon_grid_relayout()
         return super(mapIconsDialog, self).eventFilter(obj, event)
 
     def _metadata_field_column_width(self, panel_width):
@@ -608,7 +704,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Get the grid layout from the UI
         layout: QGridLayout = self.iconLayout
-        max_columns = MAX_ICONS_PER_ROW  # Number of icons per row
+        max_columns = self._icon_grid_column_count()
+        self._grid_columns = max_columns
         
         # Get all icon files from the data manager
         if not self.data_manager:
@@ -836,6 +933,9 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 col = 0
                 row += 1
 
+        self._icons_loaded = True
+        self._schedule_icon_grid_relayout(force=True)
+
     def _create_icon_widget(self, layout, icon_file, display_name, row, col):
         """
         Create a widget containing an icon button and optionally a label.
@@ -935,6 +1035,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 entry_container = entry.get('container')
                 if entry_container:
                     entry_container.setVisible(True)
+            self._schedule_icon_grid_relayout(force=True)
             return
 
         # Split into tokens so user can type multiple words
@@ -944,6 +1045,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 entry_container = entry.get('container')
                 if entry_container:
                     entry_container.setVisible(True)
+            self._schedule_icon_grid_relayout(force=True)
             return
 
         # Apply filter
@@ -953,6 +1055,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             entry_container = entry.get('container')
             if entry_container:
                 entry_container.setVisible(visible)
+        self._schedule_icon_grid_relayout(force=True)
 
     def _svg_search_directories(self):
         """Directories to search for <unique-id>.svg in the cache."""
@@ -1038,8 +1141,9 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.metadataPanel.setVisible(True)
         if hasattr(self, "splitter"):
             total = max(self.splitter.width(), 800)
-            meta_width = 360   # tweak this
+            meta_width = 340
             self.splitter.setSizes([total - meta_width, meta_width])
+        self._schedule_icon_grid_relayout()
         self.update_metadata_display(filename, icon_path)
         
     def on_format_changed(self):
@@ -1270,3 +1374,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Hide metadata panel
         self.metadataPanel.setVisible(False)
+        if hasattr(self, "splitter"):
+            total = max(self.splitter.width(), 1)
+            self.splitter.setSizes([total, 0])
+        self._schedule_icon_grid_relayout()
