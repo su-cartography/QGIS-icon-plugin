@@ -57,6 +57,23 @@ from .config import (
     ICON_BUTTON_STYLE,
     CONTAINER_STYLE,
     METADATA_CSV_HEADERS,
+    PLUGIN_ICON_FILENAME,
+    METADATA_PREVIEW_SIZE,
+    METADATA_PREVIEW_HEIGHT,
+    DIALOG_STYLE,
+    HEADER_STYLE,
+    SEARCH_STYLE,
+    SCROLL_AREA_STYLE,
+    METADATA_PANEL_STYLE,
+    METADATA_CLOSE_BUTTON_STYLE,
+    PREVIEW_LABEL_STYLE,
+    METADATA_GROUP_STYLE,
+    FORMAT_GROUP_STYLE,
+    METADATA_FIELD_LABEL_STYLE,
+    METADATA_VALUE_STYLE,
+    PRIMARY_TAG_VALUE_STYLE,
+    SPLITTER_STYLE,
+    BUTTON_BOX_STYLE,
 )
 from .data_manager import DataManager
 
@@ -86,6 +103,21 @@ METADATA_ALL_VALUE_LABELS = (
     "notesValue",
 )
 
+METADATA_FIELD_LABELS = (
+    "codeLabel",
+    "createdByLabel",
+    "createdLabel",
+    "modifiedByLabel",
+    "modifiedLabel",
+    "whenUploadedLabel",
+    "secondaryTagsLabel",
+    "iconGeographyLabel",
+    "iconDescriptionLabel",
+    "iconContextLabel",
+    "creationContextLabel",
+    "notesLabel",
+)
+
 # Load the UI definition file
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'map_icons_dialog_base.ui'))
@@ -106,6 +138,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Set up the UI
         self.setupUi(self)
+        self._plugin_icon_path = os.path.join(plugin_dir, PLUGIN_ICON_FILENAME)
+        self._apply_dialog_theme()
         self._configure_metadata_form()
         
         # Initialize instance variables
@@ -121,16 +155,48 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.actual_icons_dir = None    # Store where icons were actually found
         self.icon_entries = []          # Store per-icon data for search/filtering
         
-        # Add a search box above the icon grid for filtering by tags
-        
+        # Branded header and search above the icon grid
+        self.headerWidget = QtWidgets.QWidget(self)
+        header_layout = QtWidgets.QHBoxLayout(self.headerWidget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(12)
+
+        self.headerIconLabel = QtWidgets.QLabel(self.headerWidget)
+        self.headerIconLabel.setFixedSize(36, 36)
+        self.headerIconLabel.setScaledContents(True)
+        if os.path.isfile(self._plugin_icon_path):
+            self.headerIconLabel.setPixmap(
+                QtGui.QPixmap(self._plugin_icon_path).scaled(
+                    36, 36, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                )
+            )
+
+        self.dialogHeaderLabel = QtWidgets.QLabel("Map Icons", self.headerWidget)
+        self.dialogHeaderLabel.setObjectName("dialogHeaderLabel")
+        self.dialogHeaderLabel.setStyleSheet(HEADER_STYLE)
+
+        header_layout.addWidget(self.headerIconLabel)
+        header_layout.addWidget(self.dialogHeaderLabel)
+        header_layout.addStretch()
+
         self.searchLineEdit = QtWidgets.QLineEdit(self)
         self.searchLineEdit.setPlaceholderText(
             "Search icons by tags, geography, or designer..."
         )
+        self.searchLineEdit.setClearButtonEnabled(True)
+        self.searchLineEdit.setStyleSheet(SEARCH_STYLE)
+        self.searchLineEdit.setMinimumHeight(38)
         self.searchLineEdit.textChanged.connect(self.on_search_text_changed)
-        # Insert at top of the main layout, above the splitter
         if hasattr(self, 'mainLayout'):
-            self.mainLayout.insertWidget(0, self.searchLineEdit)
+            self.mainLayout.insertWidget(0, self.headerWidget)
+            self.mainLayout.insertWidget(1, self.searchLineEdit)
+            self.mainLayout.setSpacing(6)
+            self.mainLayout.setContentsMargins(12, 8, 12, 10)
+            splitter_idx = self.mainLayout.indexOf(self.splitter)
+            if splitter_idx >= 0:
+                self.mainLayout.setStretch(splitter_idx, 1)
+            self.mainLayout.setStretch(0, 0)
+            self.mainLayout.setStretch(1, 0)
         
 
         # Ensure metadata panel is hidden by default
@@ -142,6 +208,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Connect Cancel button to clear selection
         self.button_box.rejected.connect(self.on_cancel_clicked)
+        if hasattr(self, "metadataCloseButton"):
+            self.metadataCloseButton.clicked.connect(self.on_cancel_clicked)
         
         # Connect format radio buttons if they exist
         if hasattr(self, 'pngFormatRadio') and hasattr(self, 'svgFormatRadio'):
@@ -227,6 +295,69 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         """Handle Cancel button click - hide metadata panel and clear selection."""
         self.clear_selection()
 
+    def _apply_dialog_theme(self):
+        """Apply colour palette and styles to the dialog."""
+        self.setStyleSheet(DIALOG_STYLE)
+        self.setMinimumSize(880, 640)
+
+        if os.path.isfile(self._plugin_icon_path):
+            self.setWindowIcon(QtGui.QIcon(self._plugin_icon_path))
+
+        if hasattr(self, "scrollArea"):
+            self.scrollArea.setStyleSheet(SCROLL_AREA_STYLE)
+        if hasattr(self, "scrollAreaWidgetContents"):
+            self.scrollAreaWidgetContents.setStyleSheet("background: transparent;")
+            self.scrollAreaWidgetContents.setSizePolicy(
+                QSizePolicy.Preferred, QSizePolicy.Minimum
+            )
+        if hasattr(self, "metadataPanel"):
+            self.metadataPanel.setStyleSheet(METADATA_PANEL_STYLE)
+        if hasattr(self, "metadataCloseButton"):
+            self.metadataCloseButton.setObjectName("metadataCloseButton")
+            self.metadataCloseButton.setStyleSheet(METADATA_CLOSE_BUTTON_STYLE)
+            self.metadataCloseButton.setCursor(Qt.PointingHandCursor)
+        if hasattr(self, "iconPreviewLabel"):
+            self.iconPreviewLabel.setStyleSheet(PREVIEW_LABEL_STYLE)
+            self.iconPreviewLabel.setFixedHeight(METADATA_PREVIEW_HEIGHT)
+            self.iconPreviewLabel.setMaximumHeight(METADATA_PREVIEW_HEIGHT)
+            self.iconPreviewLabel.setSizePolicy(
+                QSizePolicy.Expanding, QSizePolicy.Fixed
+            )
+            self.iconPreviewLabel.setScaledContents(False)
+        if hasattr(self, "metadataGroup"):
+            self.metadataGroup.setStyleSheet(METADATA_GROUP_STYLE)
+        if hasattr(self, "formatGroup"):
+            self.formatGroup.setStyleSheet(FORMAT_GROUP_STYLE)
+        if hasattr(self, "metadataScrollArea"):
+            self.metadataScrollArea.setStyleSheet(SCROLL_AREA_STYLE)
+        if hasattr(self, "metadataScrollContents"):
+            self.metadataScrollContents.setStyleSheet("background: transparent;")
+        if hasattr(self, "button_box"):
+            self.button_box.setStyleSheet(BUTTON_BOX_STYLE)
+        if hasattr(self, "splitter"):
+            self.splitter.setStyleSheet(SPLITTER_STYLE)
+            self.splitter.setHandleWidth(6)
+        if hasattr(self, "metadataLayout"):
+            self.metadataLayout.setContentsMargins(12, 10, 12, 10)
+            self.metadataLayout.setSpacing(8)
+            preview_idx = self.metadataLayout.indexOf(self.iconPreviewLabel)
+            scroll_idx = self.metadataLayout.indexOf(self.metadataScrollArea)
+            format_idx = (
+                self.metadataLayout.indexOf(self.formatGroup)
+                if hasattr(self, "formatGroup")
+                else -1
+            )
+            if preview_idx >= 0:
+                self.metadataLayout.setStretch(preview_idx, 0)
+            if scroll_idx >= 0:
+                self.metadataLayout.setStretch(scroll_idx, 1)
+            if format_idx >= 0:
+                self.metadataLayout.setStretch(format_idx, 0)
+        if hasattr(self, "iconLayout"):
+            self.iconLayout.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+            self.iconLayout.setSpacing(24)
+            self.iconLayout.setContentsMargins(16, 8, 16, 16)
+
     def _configure_metadata_form(self):
         """Top-align rows, span values full width, and keep row spacing even."""
         if not hasattr(self, "metadataForm"):
@@ -250,6 +381,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             if hasattr(self, name):
                 label = getattr(self, name)
                 label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+                label.setStyleSheet(METADATA_VALUE_STYLE)
+        for name in METADATA_FIELD_LABELS:
+            if hasattr(self, name):
+                getattr(self, name).setStyleSheet(METADATA_FIELD_LABEL_STYLE)
         if hasattr(self, "metadataGroup"):
             self.metadataGroup.setSizePolicy(
                 QSizePolicy.Expanding, QSizePolicy.Preferred
@@ -285,7 +420,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def _metadata_field_column_width(self, panel_width):
         """Shared width for every value column cell in the metadata form."""
-        return max(panel_width - 130, 180)
+        return max(panel_width - 135, 180)
 
     def _sync_metadata_layout(self):
         """Keep all value labels full-width with even row spacing."""
@@ -901,6 +1036,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Show metadata panel and update display
         self.metadataPanel.setVisible(True)
+        if hasattr(self, "splitter"):
+            total = max(self.splitter.width(), 800)
+            meta_width = 360   # tweak this
+            self.splitter.setSizes([total - meta_width, meta_width])
         self.update_metadata_display(filename, icon_path)
         
     def on_format_changed(self):
@@ -916,14 +1055,21 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             preview_pixmap = None
             # If SVG is selected and available, render SVG into a pixmap
             if self.use_svg_format and self.selected_icon_svg and Path(self.selected_icon_svg).exists():
-                preview_pixmap = self._render_svg_to_pixmap(self.selected_icon_svg, 150)
+                preview_pixmap = self._render_svg_to_pixmap(
+                    self.selected_icon_svg, METADATA_PREVIEW_SIZE
+                )
                 logging.info(f"Preview updated to SVG: {self.selected_icon_svg}")
             # Fallback to PNG
             if preview_pixmap is None and self.selected_icon_png:
                 icon_path_str = str(self.selected_icon_png)
                 pixmap = QtGui.QPixmap(icon_path_str)
                 if not pixmap.isNull():
-                    preview_pixmap = pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                    preview_pixmap = pixmap.scaled(
+                        METADATA_PREVIEW_SIZE,
+                        METADATA_PREVIEW_SIZE,
+                        Qt.KeepAspectRatio,
+                        Qt.SmoothTransformation,
+                    )
                     logging.info(f"Preview updated to PNG: {self.selected_icon_png}")
             # Apply pixmap if we have one
             if preview_pixmap is not None:
@@ -938,7 +1084,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.selected_icon = self.selected_icon_png
             logging.info(f"Updated selected_icon to PNG: {self.selected_icon}")
 
-    def _render_svg_to_pixmap(self, svg_path, target_size=150):
+    def _render_svg_to_pixmap(self, svg_path, target_size=None):
         """
         Render an SVG file to a QPixmap for preview purposes.
         
@@ -949,6 +1095,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             QPixmap or None if rendering fails
         """
         try:
+            if target_size is None:
+                target_size = METADATA_PREVIEW_SIZE
             renderer = QSvgRenderer(str(svg_path))
             if not renderer.isValid():
                 logging.warning(f"QSvgRenderer could not load SVG: {svg_path}")
@@ -986,13 +1134,20 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         preview_pixmap = None
         # Prefer SVG preview if SVG is selected and available
         if self.use_svg_format and self.selected_icon_svg and Path(self.selected_icon_svg).exists():
-            preview_pixmap = self._render_svg_to_pixmap(self.selected_icon_svg, 150)
+            preview_pixmap = self._render_svg_to_pixmap(
+                self.selected_icon_svg, METADATA_PREVIEW_SIZE
+            )
         # Fallback to PNG (icon_path argument)
         if preview_pixmap is None and icon_path:
             icon_path_str = str(icon_path)
             pixmap = QtGui.QPixmap(icon_path_str)
             if not pixmap.isNull():
-                preview_pixmap = pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                preview_pixmap = pixmap.scaled(
+                    METADATA_PREVIEW_SIZE,
+                    METADATA_PREVIEW_SIZE,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation,
+                )
         if preview_pixmap is not None:
             self.iconPreviewLabel.setPixmap(preview_pixmap)
         else:
@@ -1004,6 +1159,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             dash = "-"
             tag = (meta.get("primary_tag") or "").strip()
             self.codeValue.setText(tag or "No category")
+            if tag:
+                self.codeValue.setStyleSheet(PRIMARY_TAG_VALUE_STYLE)
+            else:
+                self.codeValue.setStyleSheet(METADATA_VALUE_STYLE)
             self.createdByValue.setText(meta.get("designer") or dash)
             self.createdValue.setText(meta.get("when_created") or dash)
             self.modifiedByValue.setText(meta.get("uploader") or dash)
@@ -1020,6 +1179,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self._set_label("notesValue", notes or None)
         else:
             self.codeValue.setText("No category")
+            self.codeValue.setStyleSheet(METADATA_VALUE_STYLE)
             self.createdByValue.setText(filename)
             self.createdValue.setText("-")
             self.modifiedByValue.setText("-")

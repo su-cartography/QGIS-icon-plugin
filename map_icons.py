@@ -42,6 +42,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsApplication
 
 # Import the dialog class
+from .config import PLUGIN_ICON_FILENAME
 from .map_icons_dialog import mapIconsDialog
 
 
@@ -135,9 +136,7 @@ class mapIcons:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         # Create the main action for the plugin
-        icon = os.path.join(
-            os.path.dirname(__file__),
-            'icon.png')
+        icon = os.path.join(self.plugin_dir, PLUGIN_ICON_FILENAME)
         
         # Add the action to the toolbar and menu
         self.add_action(
