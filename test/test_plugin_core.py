@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import logging
 import sys
 import tempfile
 import types
@@ -95,6 +96,9 @@ def _bootstrap_map_icons_package():
 
 
 _bootstrap_map_icons_package()
+
+# Silence expected error logs from intentional failure tests
+logging.getLogger("map_icons.data_manager").setLevel(logging.CRITICAL)
 
 from map_icons import config  # noqa: E402
 from map_icons.data_manager import (  # noqa: E402
