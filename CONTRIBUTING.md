@@ -93,6 +93,14 @@ python test/test_plugin_core.py
 Full dialog and QGIS integration tests require a local QGIS installation.
 CI runs the no-QGIS tests on pull requests (see `.github/workflows/ci.yml`).
 
+To hit the live Zenodo latest release:
+
+```bash
+# Windows PowerShell
+$env:RUN_ZENODO_LIVE_TESTS = "1"
+python test/test_zenodo_latest.py
+```
+
 ### Submitting a pull request
 
 1. Push your branch to your fork:

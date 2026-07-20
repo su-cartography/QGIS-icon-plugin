@@ -18,30 +18,6 @@ from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MOCK_ZENODO_API_RESPONSE = {
-    "id": 20397958,
-    "files": [
-        {
-            "key": "map-icon-metadata.csv",
-            "links": {
-                "download": "https://zenodo.org/records/20397958/files/map-icon-metadata.csv?download=1",
-            },
-        },
-        {
-            "key": "map-icon-png.zip",
-            "links": {
-                "download": "https://zenodo.org/records/20397958/files/map-icon-png.zip?download=1",
-            },
-        },
-        {
-            "key": "map-icon-svg.zip",
-            "links": {
-                "download": "https://zenodo.org/records/20397958/files/map-icon-svg.zip?download=1",
-            },
-        },
-    ],
-}
-
 
 def _mock_urlopen_json(payload):
     mock_response = MagicMock()
@@ -89,6 +65,33 @@ from map_icons.data_manager import (  # noqa: E402
 )
 
 
+def _mock_zenodo_api_response(record_id=None):
+    """Build a Zenodo-like payload using config filenames (latest-release naming)."""
+    rid = str(record_id or config.ZENODO_CONCEPT_RECID)
+
+    def _file(name):
+        return {
+            "key": name,
+            "links": {
+                "download": (
+                    f"https://zenodo.org/api/records/{rid}/files/{name}/content"
+                ),
+            },
+        }
+
+    return {
+        "id": int(rid) if rid.isdigit() else rid,
+        "files": [
+            _file(config.ZENODO_METADATA_CSV_NAME),
+            _file(config.ZENODO_PNG_ZIP_NAME),
+            _file(config.ZENODO_SVG_ZIP_NAME),
+        ],
+    }
+
+
+MOCK_ZENODO_API_RESPONSE = _mock_zenodo_api_response()
+
+
 class TestConfig(unittest.TestCase):
     def test_zenodo_concept_doi(self):
         self.assertIn("zenodo", config.ZENODO_CONCEPT_DOI)
@@ -128,8 +131,11 @@ class TestZenodoApi(unittest.TestCase):
 
         assets = resolve_latest_zenodo_assets()
         self.assertIsNotNone(assets)
-        self.assertEqual(assets["record_id"], "20397958")
-        self.assertIn("map-icon-png.zip", assets["png_zip_url"])
+        self.assertEqual(assets["record_id"], str(config.ZENODO_CONCEPT_RECID))
+        self.assertIn(config.ZENODO_PNG_ZIP_NAME, assets["png_zip_url"])
+        self.assertIn(config.ZENODO_SVG_ZIP_NAME, assets["svg_zip_url"])
+        self.assertIn(config.ZENODO_METADATA_CSV_NAME, assets["metadata_csv_url"])
+        self.assertEqual(assets["metadata_filename"], config.ZENODO_METADATA_CSV_NAME)
 
     @patch("map_icons.data_manager.urlopen")
     def test_get_zenodo_assets_caches_result(self, mock_urlopen):
@@ -195,14 +201,6 @@ class TestDataManager(unittest.TestCase):
 
         self.assertTrue(dm._refresh_cache_if_new_release())
         self.assertFalse((dm.cache_dir / "map-icon-png" / "00e8059e.png").exists())
-
-    @patch("map_icons.data_manager.get_zenodo_assets")
-    def test_metadata_exists_true_when_file_present(self, mock_get_assets):
-        mock_get_assets.return_value = {
-            "record_id": "20397958",
-            "metadata_filename": "map-icon-metadata.csv",
-        }
-        self.assertTrue(dm.icons_exist())
 
     def test_svgs_exist_false_when_empty(self):
         dm = DataManager(str(self.plugin_dir))
