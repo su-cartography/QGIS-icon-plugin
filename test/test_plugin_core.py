@@ -403,9 +403,8 @@ class TestDataManager(unittest.TestCase):
         self.assertTrue(dm._refresh_cache_if_new_release())
         self.assertFalse((dm.cache_dir / "map-icon-png" / "00e8059e.png").exists())
 
-    def test_svgs_exist_false_when_empty(self):
-        @patch("map_icons.data_manager.get_zenodo_assets")
-        
+    
+    @patch("map_icons.data_manager.get_zenodo_assets")     
     def test_refresh_cache_same_release_keeps_cache(self, mock_get_assets):
         dm = DataManager(str(self.plugin_dir))
         png_dir = dm.cache_dir / "map-icon-png"
