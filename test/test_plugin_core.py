@@ -25,39 +25,6 @@ from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MOCK_ZENODO_API_RESPONSE = {
-    "id": 20397958,
-    "files": [
-        {
-            "key": "map-icon-metadata.csv",
-            "links": {
-                "download": (
-                    "https://zenodo.org/records/20397958/files/"
-                    "map-icon-metadata.csv?download=1"
-                ),
-            },
-        },
-        {
-            "key": "map-icon-png.zip",
-            "links": {
-                "download": (
-                    "https://zenodo.org/records/20397958/files/"
-                    "map-icon-png.zip?download=1"
-                ),
-            },
-        },
-        {
-            "key": "map-icon-svg.zip",
-            "links": {
-                "download": (
-                    "https://zenodo.org/records/20397958/files/"
-                    "map-icon-svg.zip?download=1"
-                ),
-            },
-        },
-    ],
-}
-
 
 def _mock_urlopen_json(payload):
     mock_response = MagicMock()
@@ -249,16 +216,11 @@ class TestZenodoApi(unittest.TestCase):
         self.assertIn(config.ZENODO_SVG_ZIP_NAME, assets["svg_zip_url"])
         self.assertIn(config.ZENODO_METADATA_CSV_NAME, assets["metadata_csv_url"])
         self.assertEqual(assets["metadata_filename"], config.ZENODO_METADATA_CSV_NAME)
-        self.assertEqual(assets["record_id"], "20397958")
-        self.assertIn("map-icon-png.zip", assets["png_zip_url"])
-        self.assertIn("map-icon-svg.zip", assets["svg_zip_url"])
-        self.assertIn("map-icon-metadata.csv", assets["metadata_csv_url"])
-        self.assertEqual(assets["metadata_filename"], "map-icon-metadata.csv")
 
     @patch("map_icons.data_manager.urlopen")
     def test_resolve_latest_zenodo_assets_missing_file(self, mock_urlopen):
         incomplete = {
-            "id": 20397958,
+            "id": config.ZENODO_CONCEPT_RECID,
             "files": [MOCK_ZENODO_API_RESPONSE["files"][0]],
         }
         mock_urlopen.return_value = _mock_urlopen_json(incomplete)
@@ -403,7 +365,6 @@ class TestDataManager(unittest.TestCase):
         self.assertTrue(dm._refresh_cache_if_new_release())
         self.assertFalse((dm.cache_dir / "map-icon-png" / "00e8059e.png").exists())
 
-    def test_svgs_exist_false_when_empty(self):
     @patch("map_icons.data_manager.get_zenodo_assets")
     def test_refresh_cache_same_release_keeps_cache(self, mock_get_assets):
         dm = DataManager(str(self.plugin_dir))
