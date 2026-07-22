@@ -76,6 +76,7 @@ ICON_SIZE = 80  # Increased for better visibility
 BUTTON_SIZE = 100  # Increased for better clickability
 LABEL_MAX_WIDTH = 140  # Wider to show full primary tags (e.g. "public-basketball-courts")
 LABEL_MIN_HEIGHT = 36  # Taller for multi-line labels
+ICON_CARD_MIN_WIDTH = 130  # layout estimate; tuned for 5 cols closed, 3 cols with preview open
 
 # Metadata panel preview 
 METADATA_PREVIEW_SIZE = 72
