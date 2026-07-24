@@ -25,39 +25,6 @@ from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MOCK_ZENODO_API_RESPONSE = {
-    "id": 20397958,
-    "files": [
-        {
-            "key": "map-icon-metadata.csv",
-            "links": {
-                "download": (
-                    "https://zenodo.org/records/20397958/files/"
-                    "map-icon-metadata.csv?download=1"
-                ),
-            },
-        },
-        {
-            "key": "map-icon-png.zip",
-            "links": {
-                "download": (
-                    "https://zenodo.org/records/20397958/files/"
-                    "map-icon-png.zip?download=1"
-                ),
-            },
-        },
-        {
-            "key": "map-icon-svg.zip",
-            "links": {
-                "download": (
-                    "https://zenodo.org/records/20397958/files/"
-                    "map-icon-svg.zip?download=1"
-                ),
-            },
-        },
-    ],
-}
-
 
 def _mock_urlopen_json(payload):
     mock_response = MagicMock()
@@ -109,6 +76,33 @@ from map_icons.data_manager import (  # noqa: E402
     get_zenodo_assets,
     resolve_latest_zenodo_assets,
 )
+
+
+def _mock_zenodo_api_response(record_id=None):
+    """Build a Zenodo-like payload using config filenames (latest-release naming)."""
+    rid = str(record_id or config.ZENODO_CONCEPT_RECID)
+
+    def _file(name):
+        return {
+            "key": name,
+            "links": {
+                "download": (
+                    f"https://zenodo.org/api/records/{rid}/files/{name}/content"
+                ),
+            },
+        }
+
+    return {
+        "id": int(rid) if rid.isdigit() else rid,
+        "files": [
+            _file(config.ZENODO_METADATA_CSV_NAME),
+            _file(config.ZENODO_PNG_ZIP_NAME),
+            _file(config.ZENODO_SVG_ZIP_NAME),
+        ],
+    }
+
+
+MOCK_ZENODO_API_RESPONSE = _mock_zenodo_api_response()
 
 
 class TestConfig(unittest.TestCase):
@@ -217,16 +211,16 @@ class TestZenodoApi(unittest.TestCase):
 
         assets = resolve_latest_zenodo_assets()
         self.assertIsNotNone(assets)
-        self.assertEqual(assets["record_id"], "20397958")
-        self.assertIn("map-icon-png.zip", assets["png_zip_url"])
-        self.assertIn("map-icon-svg.zip", assets["svg_zip_url"])
-        self.assertIn("map-icon-metadata.csv", assets["metadata_csv_url"])
-        self.assertEqual(assets["metadata_filename"], "map-icon-metadata.csv")
+        self.assertEqual(assets["record_id"], str(config.ZENODO_CONCEPT_RECID))
+        self.assertIn(config.ZENODO_PNG_ZIP_NAME, assets["png_zip_url"])
+        self.assertIn(config.ZENODO_SVG_ZIP_NAME, assets["svg_zip_url"])
+        self.assertIn(config.ZENODO_METADATA_CSV_NAME, assets["metadata_csv_url"])
+        self.assertEqual(assets["metadata_filename"], config.ZENODO_METADATA_CSV_NAME)
 
     @patch("map_icons.data_manager.urlopen")
     def test_resolve_latest_zenodo_assets_missing_file(self, mock_urlopen):
         incomplete = {
-            "id": 20397958,
+            "id": config.ZENODO_CONCEPT_RECID,
             "files": [MOCK_ZENODO_API_RESPONSE["files"][0]],
         }
         mock_urlopen.return_value = _mock_urlopen_json(incomplete)

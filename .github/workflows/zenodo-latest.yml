@@ -1,0 +1,31 @@
+# Live checks against the latest Zenodo release (concept DOI).
+# Runs on a schedule so a new upload that breaks expected files/headers fails CI.
+name: Zenodo latest
+
+on:
+  schedule:
+    # Mondays at 14:00 UTC
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+jobs:
+  zenodo-latest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Live Zenodo latest-release checks
+        env:
+          RUN_ZENODO_LIVE_TESTS: "1"
+        run: |
+          python test/test_zenodo_latest.py
